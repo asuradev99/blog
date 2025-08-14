@@ -1,0 +1,44 @@
+{
+  "generated": "2025-08-14T02:42:30.867Z",
+  "posts": [
+    {
+      "title": "2025-08-14",
+      "path": "posts/Daily/2025-08-14.html",
+      "tags": [
+        "daily"
+      ],
+      "date": "2025-08-14"
+    },
+    {
+      "title": "2025-08-13",
+      "path": "posts/Daily/2025-08-13.html",
+      "tags": [
+        "daily"
+      ],
+      "date": "2025-08-13"
+    },
+    {
+      "title": "Hello World",
+      "path": "posts/Test/Hello-World.html",
+      "tags": [
+        "tag1",
+        "tag2"
+      ],
+      "date": "2025-08-13"
+    },
+    {
+      "title": "New Post",
+      "path": "posts/Test/new-post.html",
+      "tags": [],
+      "date": "2025-08-13"
+    },
+    {
+      "title": "2025-08-12",
+      "path": "posts/Daily/2025-08-12.html",
+      "tags": [
+        "daily"
+      ],
+      "date": "2025-08-12"
+    }
+  ]
+}
