@@ -5,6 +5,10 @@
   const byDateDesc = (a, b) => new Date(b.date||0) - new Date(a.date||0);
   const qs = () => new URLSearchParams(location.search);
 
+  // ---------- SPA settings ----------
+  const SPA_ENABLED = location.protocol === 'http:' || location.protocol === 'https:';
+  const PAGE_CACHE = new Map(); // path+search -> html text
+
   // ---------- Root‑safe linking ----------
   function getSiteBase(){
     const p = location.pathname;
@@ -16,9 +20,72 @@
   function toRootHref(rel){ rel = String(rel || '').replace(/^\/+/, ''); return getSiteBase() + rel; }
   function currentRelPath(){ const base = getSiteBase(); let rel = location.pathname; if (rel.startsWith(base)) rel = rel.slice(base.length); return normalizePath(rel); }
 
+  // ---------- Runtime layout/style injection ----------
+  function applyRuntimeStyles(){
+    if($('#runtime-style')) return;
+    const s = document.createElement('style');
+    s.id = 'runtime-style';
+    s.textContent = `
+      html, body { height: 100%; overflow: hidden; }
+      body { font-size: 18px; }
+      .topbar { position: fixed; left: 0; right: 0; top: 0; z-index: 10; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 8px 12px; }
+      .topbar .brand { text-decoration: none; font-weight: 700; }
+      .topbar .actions { display: inline-flex; gap: 8px; align-items: center; }
+      .layout { height: calc(100vh - var(--topbar-h, 54px)); display: grid; gap: 0; grid-template-columns: var(--left-w,260px) 1fr var(--right-w,220px); }
+      #content { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-gutter: stable both-edges; }
+      .sidebar { overflow: hidden; }
+      body > .layout { margin-top: var(--topbar-h, 54px); }
+
+      /* Transparent scrollbar (track transparent, thumb only on hover) */
+      #content::-webkit-scrollbar { width: 10px; background: transparent; }
+      #content::-webkit-scrollbar-track { background: transparent; }
+      #content::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+      #content:hover::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.18); }
+      /* Firefox */
+      #content { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+      #content:hover { scrollbar-color: rgba(255,255,255,0.18) transparent; }
+
+      /* Content-only footer styling */
+      .content-footer.footer { text-align: center; padding: 18px 0; opacity: .8; }
+
+      /* Graph overlay */
+      #graph-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9999; display: none; }
+      #graph-overlay .panel { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); width: min(1100px, 92vw); height: min(740px, 84vh); background: var(--panel, #121825); border: 1px solid var(--border, #1f2635); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.45); display: flex; flex-direction: column; }
+      .graph-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border, #1f2635); }
+      .graph-toolbar .title { font-weight: 600; opacity: .9; }
+      .graph-canvas { flex: 1; }
+      .ghost { background: transparent; color: var(--muted, #9aa4b2); border: 1px solid var(--border, #1f2635); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+      .ghost:hover { color: var(--text,#e5e7eb); border-color: var(--accent-2,#7dd3fc); }
+    `;
+    document.head.appendChild(s);
+  }
+  function measureChrome(){
+    const top = $('.topbar');
+    const topH = top ? Math.ceil(top.getBoundingClientRect().height) : 54;
+    document.documentElement.style.setProperty('--topbar-h', topH + 'px');
+  }
+
+  // Ensure a footer exists inside #content, remove any global footer
+  function ensureContentFooter(){
+    $$('.footer').forEach(f => { if(!f.closest('#content')) f.remove(); });
+    const content = $('#content'); if(!content) return;
+    let cf = content.querySelector('.content-footer.footer');
+    if(!cf){
+      cf = document.createElement('div');
+      cf.className = 'content-footer footer muted';
+      cf.innerHTML = `© <span class="year"></span> • Built with HTML/CSS/JS + MathJax`;
+      content.appendChild(cf);
+    }
+    const yEl = cf.querySelector('.year'); if(yEl) yEl.textContent = new Date().getFullYear();
+  }
+
   // ---------- Minimal shell injector (for bare post pages) ----------
   function ensureShell(){
-    if ($('.layout')) return; // already has chrome
+    if ($('.layout')) {
+      $$('.topnav').forEach(el=>el.remove()); // ensure old topnav removed
+      if(!$('.topbar .actions')){ const actions=document.createElement('div'); actions.className='actions'; actions.innerHTML=`<button id="graph-btn" class="ghost" type="button">Graph</button>`; $('.topbar')?.appendChild(actions); }
+      return;
+    }
     const header = document.createElement('header');
     header.className = 'topbar';
     header.innerHTML = `
@@ -27,11 +94,9 @@
         <input id="search-input" type="search" placeholder="Search… (use tag:foo tag:bar)" aria-label="Search posts" />
         <button id="search-clear" type="button" class="ghost tiny" aria-label="Clear search">×</button>
       </form>
-      <nav class="topnav">
-        <a href="${toRootHref('index.html')}">Home</a>
-        <button id="toggle-left" class="ghost" aria-label="Toggle left sidebar" aria-expanded="true">☰ Left</button>
-        <button id="toggle-right" class="ghost" aria-label="Toggle right sidebar" aria-expanded="true">☰ Right</button>
-      </nav>`;
+      <div class="actions">
+        <button id="graph-btn" class="ghost" type="button">Graph</button>
+      </div>`;
 
     const bodyNodes = Array.from(document.body.childNodes);
 
@@ -49,14 +114,9 @@
         <ul id="tag-list" class="tag-list"></ul>
       </aside>`;
 
-    const footer = document.createElement('footer');
-    footer.className = 'footer muted';
-    footer.innerHTML = `© <span id="year"></span> • Built with HTML/CSS/JS + MathJax`;
-
     document.body.innerHTML = '';
     document.body.appendChild(header);
     document.body.appendChild(layout);
-    document.body.appendChild(footer);
 
     const main = $('#content');
     let article = $('#post-article');
@@ -81,6 +141,7 @@
       (after||article).insertAdjacentElement('afterend', metaDiv);
     }
     main.appendChild(article);
+    ensureContentFooter();
   }
 
   // ---------- Manifest loader (JSON-only; no posts.js fallback) ----------
@@ -101,72 +162,44 @@
     }
   }
 
-  // ---------- Tags/Tree helpers ----------
-  function buildTree(posts){
-    const root = { name: '', type: 'folder', children: new Map() };
-    (posts||[]).forEach(p => {
-      let parts = normalizePath(p.path).split('/');
-      // Hide the top-level 'posts' folder from the tree
-      if(parts[0] && parts[0].toLowerCase() === 'posts') parts = parts.slice(1);
-      let node = root;
-      for(let i=0;i<parts.length;i++){
-        const part = parts[i];
-        const isFile = i === parts.length - 1;
-        if(isFile){
-          if(!node.children.has('__files__')) node.children.set('__files__', []);
-          node.children.get('__files__').push({ name: p.title || part, type:'file', path: p.path, meta: p });
-        } else {
-          if(!node.children.has(part)) node.children.set(part, { name: part, type:'folder', children: new Map() });
-          node = node.children.get(part);
-        }
-      }
-    });
-    return root;
-  }
-  function renderTree(container, tree){
+  // ---------- Intro visibility helpers ----------
+  function setIntroVisible(visible){ $$('#intro, #intro-section, .intro, .intro-block').forEach(el => { if(el) el.style.display = visible ? '' : 'none'; }); }
+  function updateIntroVisibility(){ const p = qs(); const hasTag = !!p.get('tag'); const q = (p.get('q')||'').trim(); const showIntro = !(hasTag || q); setIntroVisible(showIntro); }
+
+  // ---------- Sidebar (flat list — no directories) ----------
+  function buildLeftTree(posts){
+    const mount = $('#tree'); if(!mount) return;
+    mount.innerHTML='';
     const ul = document.createElement('ul');
-    ul.className = 'tree';
-    const folders = [...tree.children.entries()].filter(([k]) => k !== '__files__').sort((a,b)=>a[0].localeCompare(b[0]));
-    folders.forEach(([name, folderNode]) => {
-      const li = document.createElement('li'); li.className = 'open';
-      const head = document.createElement('div'); head.className = 'folder node';
-      head.innerHTML = `<span class="caret">▾</span><span>${name}</span>`;
-      head.addEventListener('click', () => li.classList.toggle('open'));
-      const childrenWrap = document.createElement('div'); childrenWrap.className = 'children';
-      renderTree(childrenWrap, folderNode);
-      li.appendChild(head); li.appendChild(childrenWrap); ul.appendChild(li);
-    });
-    const files = (tree.children.get('__files__')||[]).sort((a,b)=>a.name.localeCompare(b.name));
+    ul.className = 'tree flat';
     const activeRel = currentRelPath();
-    files.forEach(fileNode => {
+    const files = (posts||[]).slice().sort((a,b)=> (a.title||'').localeCompare(b.title||''));
+    files.forEach(p=>{
       const li = document.createElement('li'); li.className = 'file';
-      const a = document.createElement('a'); a.href = toRootHref(fileNode.path); a.textContent = fileNode.name;
-      const isActive = normalizePath(fileNode.path) === activeRel; if(isActive) a.classList.add('active');
-      const wrap = document.createElement('div'); wrap.className = 'node' + (isActive ? ' active' : ''); wrap.appendChild(a);
-      li.appendChild(wrap); ul.appendChild(li);
+      const a = document.createElement('a'); a.href = toRootHref(p.path); a.textContent = p.title || (p.path.split('/').pop()||'').replace(/\.html$/,'');
+      const isActive = normalizePath(p.path) === activeRel; if(isActive) a.classList.add('active');
+      const wrap = document.createElement('div'); wrap.className = 'node' + (isActive ? ' active' : '');
+      wrap.appendChild(a); li.appendChild(wrap); ul.appendChild(li);
     });
-    container.appendChild(ul);
+    mount.appendChild(ul);
   }
-  function buildLeftTree(posts){ const mount = $('#tree'); if(!mount) return; mount.innerHTML=''; renderTree(mount, buildTree(posts)); const active = $(`.node.active`); if(active){ let p = active.parentElement; while(p && p !== mount){ if(p.classList.contains('children')) p.parentElement.classList.add('open'); p = p.parentElement; } } }
+
+  // ---------- Tags (right sidebar) ----------
   function buildRightTags(posts){ const map = new Map(); (posts||[]).forEach(p => (p.tags||[]).forEach(t => map.set(t, (map.get(t)||0)+1))); const list = $('#tag-list'); if(!list) return; list.innerHTML=''; [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([tag,count])=>{ const li = document.createElement('li'); const a = document.createElement('a'); a.href = toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent = tag; a.addEventListener('click',(ev)=>{ if(ev.shiftKey||ev.ctrlKey||ev.metaKey){ ev.preventDefault(); const inp=$('#search-input'); if(inp){ inp.value=(inp.value+` tag:${tag}`).trim(); runSearchFromUI(); } } }); const c = document.createElement('span'); c.className='count'; c.textContent=count; li.appendChild(a); li.appendChild(c); list.appendChild(li); }); }
   function chip(tag){ const a=document.createElement('a'); a.className='tag-chip'; a.href=toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent=`#${tag}`; a.addEventListener('click',(ev)=>{ if(ev.shiftKey||ev.ctrlKey||ev.metaKey){ ev.preventDefault(); const inp=$('#search-input'); if(inp){ inp.value=(inp.value+` tag:${tag}`).trim(); runSearchFromUI(); } } }); return a; }
 
   // ---------- Index page ----------
   function renderList(posts){ const list=$('#recent-list'); if(!list) return; list.innerHTML=''; posts.forEach(p=>{ const li=document.createElement('li'); li.className='post-item'; const link=document.createElement('a'); link.href=toRootHref(p.path); link.textContent=p.title; const meta=document.createElement('div'); meta.className='meta'; const date=document.createElement('span'); date.textContent=p.date?new Date(p.date).toLocaleDateString():''; meta.appendChild(date); (p.tags||[]).forEach(t=>meta.appendChild(chip(t))); li.appendChild(link); li.appendChild(meta); list.appendChild(li); }); }
-  function buildIndex(posts){ const tag=qs().get('tag'); const sorted=(posts||[]).slice().sort(byDateDesc); const shown=tag?sorted.filter(p=>(p.tags||[]).includes(tag)):sorted; if($('#main-title')) $('#main-title').textContent=tag?`Posts tagged “${tag}”`:'Recent Posts'; if($('#tag-context')) $('#tag-context').innerHTML=tag?`<a class="tag-chip" href="${toRootHref('index.html')}">Clear tag</a>`:''; renderList(shown); }
+  function buildIndex(posts){ const tag=qs().get('tag'); const sorted=(posts||[]).slice().sort(byDateDesc); const shown=tag?sorted.filter(p=>(p.tags||[]).includes(tag)):sorted; if($('#main-title')) $('#main-title').textContent=tag?`Posts tagged “${tag}”`:'Recent Posts'; if($('#tag-context')) $('#tag-context').innerHTML=tag?`<a class="tag-chip" href="${toRootHref('index.html')}">Clear tag</a>`:''; renderList(shown); updateIntroVisibility(); ensureContentFooter(); }
 
-  // ---------- Daily prev/next ----------
-  function parseDateOrFallback(p){
-    if(p.date) return p.date;
-    const m = p.path && p.path.match(/\/Daily\/(\d{4}-\d{2}-\d{2})/);
-    return m ? m[1] : '';
-  }
+  // ---------- Daily prev/next (defined by tag "daily") ----------
+  const hasDailyTag = (p) => (p && (p.tags||[]).some(t => String(t).toLowerCase()==='daily'));
   function addDailyNav(posts, entry){
-    if(!entry || !/^posts\/Daily\//.test(entry.path)) return; // not a Daily post
-    const daily = (posts||[]).filter(x => /^posts\/Daily\//.test(x.path))
-      .map(x => ({ ...x, _d: parseDateOrFallback(x) }))
-      .filter(x => x._d)
-      .sort((a,b) => a._d.localeCompare(b._d)); // ascending
+    if(!entry || !hasDailyTag(entry)) return;
+    const daily = (posts||[])
+      .filter(hasDailyTag)
+      .slice()
+      .sort((a,b)=> String(a.date||'').localeCompare(String(b.date||''))); // ascending by date string
 
     const idx = daily.findIndex(x => x.path === entry.path);
     if(idx === -1) return;
@@ -176,23 +209,17 @@
     const article = $('#post-article');
     const h1 = article?.querySelector('h1');
 
-    // Ensure title is the ISO date for Daily posts
-    if(h1 && entry.date) h1.textContent = entry.date;
-
-    // Group prev/next close together
     const nav = document.createElement('div');
     nav.className = 'daily-nav';
     nav.style.display = 'flex';
     nav.style.justifyContent = 'flex-start';
     nav.style.gap = '10px';
     const parts = [];
-    if(prev) parts.push(`<a class="prev" href="${toRootHref(prev.path)}">← ${prev.date || prev._d}</a>`);
-    if(next) parts.push(`<a class="next" href="${toRootHref(next.path)}">${next.date || next._d} →</a>`);
+    if(prev) parts.push(`<a class="prev" href="${toRootHref(prev.path)}">← ${prev.title || prev.date || ''}</a>`);
+    if(next) parts.push(`<a class="next" href="${toRootHref(next.path)}">${next.title || next.date || ''} →</a>`);
     nav.innerHTML = parts.join(' <span class="sep">•</span> ');
 
-    // Place directly under the title (before meta)
-    if(h1) h1.insertAdjacentElement('afterend', nav);
-    else article?.insertAdjacentElement('afterbegin', nav);
+    if(h1) h1.insertAdjacentElement('afterend', nav); else article?.insertAdjacentElement('afterbegin', nav);
   }
 
   // ---------- Post page augment ----------
@@ -206,56 +233,334 @@
     const tagsFromMeta=()=>{ const m=document.querySelector('meta[name="tags"], meta[name="keywords"]'); return m?m.getAttribute('content').split(',').map(s=>s.trim()).filter(Boolean):[]; };
     const dateFromMeta=()=>document.querySelector('meta[name="date"], time[datetime]')?.getAttribute('content')||'';
 
-    // Remove any existing legacy backlink
+    // Remove any existing legacy backlink and don't add a new one
     $$('.backlink', article).forEach(el => el.remove());
 
     metaWrap.innerHTML='';
-    const isDaily = entry && /^posts\/Daily\//.test(entry.path);
+    const isDaily = hasDailyTag(entry);
     const dateText=entry?.date||dateFromMeta();
-    if(dateText && !isDaily){ // omit date subheading on Daily posts
-      const d=document.createElement('span'); d.className='muted'; d.textContent=new Date(dateText).toLocaleDateString(); metaWrap.appendChild(d);
-    }
+    if(dateText && !isDaily){ const d=document.createElement('span'); d.className='muted'; d.textContent=new Date(dateText).toLocaleDateString(); metaWrap.appendChild(d); }
     const tags=entry?.tags||tagsFromMeta(); tags.forEach(t=>metaWrap.appendChild(chip(t)));
 
-    // No "Back to Home" link (removed by request)
-
-    // Add Daily prev/next when applicable
     addDailyNav(posts, entry);
+    ensureContentFooter();
   }
 
   // ---------- MathJax ----------
   function ensureMathJax(){ if(window.MathJax){ if(window.MathJax.typesetPromise) window.MathJax.typesetPromise(); return; } if(document.querySelector('script[data-mathjax]')) return; window.MathJax={ tex:{ inlineMath:[["$","$"],["\\(","\\)"]], displayMath:[["$$","$$"],["\\[","\\]"]] }, options:{ skipHtmlTags:['script','noscript','style','textarea','pre','code'] } }; const s=document.createElement('script'); s.async=true; s.src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'; s.setAttribute('data-mathjax','true'); document.head.appendChild(s); }
 
-  // ---------- Search (titles + full content, multi‑tag) ----------
+  // ---------- Search (titles + full content, multi‑tag) + LINK GRAPH ----------
+  function relFromUrl(urlObj){
+    const base = getSiteBase();
+    let path = urlObj.pathname;
+    if(path.startsWith(base)) path = path.slice(base.length);
+    return normalizePath(path);
+  }
+
   async function buildSearchIndex(posts){
-    // On file:// avoid fetch() to each post (blocked in some browsers)
     if (location.protocol === 'file:') {
-      window.SEARCH_INDEX = (posts || []).map(p => ({ ...p, _text: (p.title || '').toLowerCase() }));
+      // Minimal index when running off file://
+      window.SEARCH_INDEX = (posts || []).map(p => ({ ...p, _text: (p.title || '').toLowerCase(), _links: [] }));
+      window.LINK_GRAPH = { nodes: posts.slice(), edges: [] };
       return;
     }
 
     const status=$('#search-status');
     const show=m=>{ if(status){ status.style.display='block'; status.textContent=m; } };
     const hide=()=>{ if(status){ status.style.display='none'; status.textContent=''; } };
+
     const signature=JSON.stringify({ n:posts.length, last: posts[0]?.date || '' });
-    const cached=localStorage.getItem('SEARCH_INDEX_V1');
-    const cachedSig=localStorage.getItem('SEARCH_INDEX_SIG_V1');
-    if(cached && cachedSig===signature){ try{ window.SEARCH_INDEX=JSON.parse(cached); return; }catch(e){} }
+    const cached=localStorage.getItem('SEARCH_INDEX_V2');
+    const cachedSig=localStorage.getItem('SEARCH_INDEX_SIG_V2');
+    if(cached && cachedSig===signature){ try{ const blob=JSON.parse(cached); window.SEARCH_INDEX=blob.index; window.LINK_GRAPH=blob.graph; return; }catch(e){} }
+
     show('Building search index…');
     const parser=new DOMParser();
-    const index=await Promise.all((posts||[]).map(async p=>{ try{ const res=await fetch(toRootHref(p.path), { cache:'no-store' }); const html=await res.text(); const doc=parser.parseFromString(html,'text/html'); const target=doc.querySelector('#post-article')||doc.querySelector('article')||doc.body; const content=(target?.textContent||'').replace(/\s+/g,' ').trim(); return { ...p, _text: (p.title+' '+content).toLowerCase() }; }catch(e){ return { ...p, _text: (p.title||'').toLowerCase() }; } }));
-    window.SEARCH_INDEX=index; try{ localStorage.setItem('SEARCH_INDEX_V1', JSON.stringify(index)); localStorage.setItem('SEARCH_INDEX_SIG_V1', signature); }catch(e){} hide(); }
+    const pathsSet = new Set((posts||[]).map(p=>normalizePath(p.path)));
+
+    const index=await Promise.all((posts||[]).map(async p=>{
+      try{
+        const res=await fetch(toRootHref(p.path), { cache:'no-store' });
+        const html=await res.text();
+        const doc=parser.parseFromString(html,'text/html');
+        const target=doc.querySelector('#post-article')||doc.querySelector('article')||doc.body;
+        const content=(target?.textContent||'').replace(/\s+/g,' ').trim();
+        // collect links
+        const aTags = Array.from(doc.querySelectorAll('a[href]'));
+        const baseUrl = new URL(toRootHref(p.path), location.href);
+        const links = [];
+        aTags.forEach(a=>{
+          try{
+            const href=a.getAttribute('href'); if(!href) return;
+            const abs = new URL(href, baseUrl);
+            const rel = relFromUrl(abs);
+            if(/^posts\/.+\.html$/i.test(rel) && pathsSet.has(rel)){
+              if(!links.includes(rel)) links.push(rel);
+            }
+          }catch(_){/* ignore */}
+        });
+        return { ...p, _text: (p.title+' '+content).toLowerCase(), _links: links };
+      }catch(e){ return { ...p, _text: (p.title||'').toLowerCase(), _links: [] }; }
+    }));
+
+    // Build undirected edge list (unique) and include Daily adjacency
+    const key = (a,b) => {
+      const aa = normalizePath(a), bb = normalizePath(b);
+      return aa < bb ? aa+'|'+bb : bb+'|'+aa;
+    };
+    const seen = new Set();
+    const edges = [];
+    index.forEach(p=>{
+      (p._links||[]).forEach(to => {
+        const k = key(p.path, to);
+        if(!seen.has(k)){ seen.add(k); edges.push({ source: p.path, target: to }); }
+      });
+    });
+    const daily = index.filter(hasDailyTag).slice().sort((a,b)=> String(a.date||'').localeCompare(String(b.date||'')));
+    for(let i=0;i<daily.length-1;i++){
+      const a = daily[i].path, b = daily[i+1].path; const k = key(a,b);
+      if(!seen.has(k)){ seen.add(k); edges.push({ source: a, target: b }); }
+    }
+
+    window.SEARCH_INDEX = index;
+    window.LINK_GRAPH = { nodes: posts.slice(), edges };
+    try{ localStorage.setItem('SEARCH_INDEX_V2', JSON.stringify({ index, graph: window.LINK_GRAPH })); localStorage.setItem('SEARCH_INDEX_SIG_V2', signature); }catch(e){}
+    hide();
+  }
+
   function parseQuery(q){ const terms=[]; const tags=[]; (q||'').split(/\s+/).filter(Boolean).forEach(tok=>{ if(/^tag:/i.test(tok)) tags.push(tok.slice(4).toLowerCase()); else if(/^#/.test(tok)) tags.push(tok.slice(1).toLowerCase()); else terms.push(tok.toLowerCase()); }); return { terms, tags }; }
   function searchPosts(q){ const {terms,tags}=parseQuery(q); const src=window.SEARCH_INDEX||window.POSTS||[]; const andMatch=(text, need)=>need.every(t=>text.includes(t)); return src.filter(p=>{ const text=(p._text||(p.title||'').toLowerCase()); const hasTerms=terms.length?andMatch(text,terms):true; const ptags=(p.tags||[]).map(s=>s.toLowerCase()); const hasTags=tags.length?tags.every(t=>ptags.includes(t)):true; return hasTerms && hasTags; }).sort(byDateDesc); }
-  function runSearchFromUI(){ const input=$('#search-input'); if(!input) return; const q=input.value.trim(); const list=$('#recent-list'); if(!list){ const dest=q?`index.html?q=${encodeURIComponent(q)}`:'index.html'; location.href=toRootHref(dest); return; } if(!q){ if($('#main-title')) $('#main-title').textContent='Recent Posts'; if($('#tag-context')) $('#tag-context').innerHTML=''; renderList((window.POSTS||[]).slice().sort(byDateDesc)); history.replaceState(null,'',toRootHref('index.html')); return; } const results=searchPosts(q); if($('#main-title')) $('#main-title').textContent='Search results'; if($('#tag-context')) $('#tag-context').textContent=`${results.length} result${results.length!==1?'s':''} for “${q}”`; renderList(results); const url=new URL(location.href); url.search=`?q=${encodeURIComponent(q)}`; history.replaceState(null,'',url); }
+  function runSearchFromUI(){ const input=$('#search-input'); if(!input) return; const q=input.value.trim(); const list=$('#recent-list'); if(!list){ const dest=q?`index.html?q=${encodeURIComponent(q)}`:'index.html'; if(SPA_ENABLED){ navigateTo(toRootHref(dest)); } else { location.href=toRootHref(dest); } return; } if(!q){ if($('#main-title')) $('#main-title').textContent='Recent Posts'; if($('#tag-context')) $('#tag-context').innerHTML=''; renderList((window.POSTS||[]).slice().sort(byDateDesc)); history.replaceState(null,'',toRootHref('index.html')); updateIntroVisibility(); ensureContentFooter(); return; } const results=searchPosts(q); if($('#main-title')) $('#main-title').textContent='Search results'; if($('#tag-context')) $('#tag-context').textContent=`${results.length} result${results.length!==1?'s':''} for “${q}”`; renderList(results); const url=new URL(location.href); url.search=`?q=${encodeURIComponent(q)}`; history.replaceState(null,'',url); updateIntroVisibility(); ensureContentFooter(); }
   function wireSearchUI(){ const form=$('#search-form'); const input=$('#search-input'); const clearBtn=$('#search-clear'); if(form && input){ form.addEventListener('submit',e=>{ e.preventDefault(); runSearchFromUI(); }); input.addEventListener('keydown',e=>{ if(e.key==='Escape'){ input.value=''; runSearchFromUI(); }}); clearBtn?.addEventListener('click',()=>{ input.value=''; runSearchFromUI(); }); window.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement !== input){ e.preventDefault(); input.focus(); } }); const q=qs().get('q'); if(q){ input.value=q; } } }
 
-  // ---------- Collapsible sidebars + footer year ----------
-  function wireChrome(){ const yEl=$('#year'); if(yEl) yEl.textContent=new Date().getFullYear(); const layout=$('.layout'); const setToggleState=(btn, active)=>btn && btn.setAttribute('aria-expanded', String(active)); const toggleLeftBtn=$('#toggle-left'); const toggleRightBtn=$('#toggle-right'); const isLeftHidden=()=>layout?.classList.contains('hide-left'); const isRightHidden=()=>layout?.classList.contains('hide-right'); toggleLeftBtn?.addEventListener('click',()=>{ layout?.classList.toggle('hide-left'); setToggleState(toggleLeftBtn,!isLeftHidden()); $('#sidebar-left')?.classList.toggle('open'); }); toggleRightBtn?.addEventListener('click',()=>{ layout?.classList.toggle('hide-right'); setToggleState(toggleRightBtn,!isRightHidden()); }); }
+  // ---------- Footer year + layout measuring ----------
+  function wireChrome(){ applyRuntimeStyles(); measureChrome(); window.addEventListener('resize', measureChrome); wireGraphUI(); }
+
+  // ---------- SPA navigation ----------
+  function shouldIntercept(a, e){
+    if(!SPA_ENABLED) return false;
+    if(!a) return false;
+    if(a.target && a.target !== '_self') return false;
+    if(a.hasAttribute('download') || a.hasAttribute('data-no-spa')) return false;
+    if(e && (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return false;
+    const url = new URL(a.href, location.href);
+    if(url.origin !== location.origin) return false;
+    const base = getSiteBase();
+    const rel = (url.pathname.startsWith(base) ? url.pathname.slice(base.length) : normalizePath(url.pathname));
+    if (/^posts\/.+\.html$/i.test(rel)) return true;
+    if (/index\.html$/i.test(rel) || rel === '' ) return true;
+    return false;
+  }
+
+  async function navigateTo(href, opts={}){
+    if(!SPA_ENABLED){ location.href = href; return; }
+    const url = new URL(href, location.href);
+    const cacheKey = url.pathname + url.search;
+    let html;
+    try{
+      if(PAGE_CACHE.has(cacheKey)){
+        html = PAGE_CACHE.get(cacheKey);
+      } else {
+        const res = await fetch(url.href, { cache: 'no-store' });
+        if(!res.ok) throw new Error('Fetch failed');
+        html = await res.text();
+        PAGE_CACHE.set(cacheKey, html);
+      }
+    }catch(err){ location.href = url.href; return; }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const fetchedArticle = doc.querySelector('#post-article');
+    const fetchedMain = doc.querySelector('#content');
+    const content = $('#content');
+    if(fetchedArticle){ content.innerHTML = ''; content.appendChild(fetchedArticle.cloneNode(true)); }
+    else if(fetchedMain){ content.innerHTML = fetchedMain.innerHTML; }
+    else { content.innerHTML = doc.body.innerHTML; }
+
+    const newTitle = doc.querySelector('meta[name="title"]')?.getAttribute('content') || doc.title;
+    if(newTitle) document.title = newTitle;
+
+    if(opts.replace) history.replaceState({}, '', url.href); else history.pushState({}, '', url.href);
+
+    wireSearchUI();
+    const posts = window.POSTS || [];
+    buildLeftTree(posts);
+    buildRightTags(posts);
+
+    if($('#post-article')){ enhancePostPage(posts); }
+    else if($('#recent-list')){
+      const q = qs().get('q');
+      if(q){ const input=$('#search-input'); if(input) input.value=q; runSearchFromUI(); }
+      else { buildIndex(posts); }
+    }
+
+    updateIntroVisibility();
+    ensureMathJax();
+    try{ window.MathJax?.typesetPromise?.(); }catch(_){ }
+    const scroller = $('#content');
+    scroller && (scroller.scrollTop = 0);
+    ensureContentFooter();
+  }
+
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('a');
+    if(shouldIntercept(a, e)){
+      e.preventDefault();
+      navigateTo(a.href);
+    }
+  });
+  document.addEventListener('mouseover', (e)=>{
+    const a = e.target.closest('a');
+    if(!shouldIntercept(a)) return;
+    const url = new URL(a.href, location.href);
+    const key = url.pathname + url.search;
+    if(!PAGE_CACHE.has(key)){
+      fetch(url.href, { cache: 'no-store' }).then(r=> r.ok ? r.text() : Promise.reject()).then(t=> PAGE_CACHE.set(key, t)).catch(()=>{});
+    }
+  });
+  window.addEventListener('popstate', ()=>{ navigateTo(location.href, { replace: true }); });
+
+  // ---------- Graph View (d3-force backend) ----------
+  function ensureGraphOverlay(){
+    if($('#graph-overlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'graph-overlay';
+    ov.innerHTML = `
+      <div class="panel">
+        <div class="graph-toolbar">
+          <div class="title">Graph View</div>
+          <div class="tools">
+            <button id=\"graph-close\" class=\"ghost\" type=\"button\">Close</button>
+          </div>
+        </div>
+        <svg id="graph-svg" class="graph-canvas" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet" aria-label="Posts link graph"></svg>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', (e)=>{ if(e.target === ov) closeGraph(); });
+    $('#graph-close', ov)?.addEventListener('click', closeGraph);
+  }
+
+  function wireGraphUI(){
+    ensureGraphOverlay();
+    const btn = $('#graph-btn');
+    if(btn && !btn._wired){ btn._wired = true; btn.addEventListener('click', openGraph); }
+  }
+
+  // Lazy-load d3
+  function ensureD3(){
+    return new Promise((resolve, reject)=>{
+      if(window.d3 && d3.forceSimulation){ return resolve(window.d3); }
+      const existing = document.querySelector('script[data-d3]');
+      if(existing){
+        const check = () => (window.d3 && d3.forceSimulation) ? resolve(window.d3) : setTimeout(check, 25);
+        return check();
+      }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
+      s.async = true; s.setAttribute('data-d3','true');
+      s.onload = () => resolve(window.d3);
+      s.onerror = (e) => reject(e);
+      document.head.appendChild(s);
+    });
+  }
+
+  let SIM = null; // d3 simulation handle
+
+  function openGraph(){
+    ensureGraphOverlay();
+    const ov = $('#graph-overlay'); if(!ov) return;
+    ensureD3().then(()=>{
+      renderGraph(window.LINK_GRAPH || { nodes: window.POSTS||[], edges: [] });
+      ov.style.display = 'block';
+    }).catch(err=>{
+      console.error('[graph] d3 load failed', err);
+      alert('Failed to load graph dependencies.');
+    });
+  }
+  function closeGraph(){
+    const ov = $('#graph-overlay'); if(ov) ov.style.display = 'none';
+    if(SIM && typeof SIM.stop === 'function'){ SIM.stop(); }
+    SIM = null;
+  }
+
+  function renderGraph(graph){
+    const svg = d3.select('#graph-svg'); if(svg.empty()) return;
+    const nodeLayerClass = 'node-layer';
+    const linkLayerClass = 'link-layer';
+    const W = 1200, H = 800; // viewBox size
+    svg.attr('viewBox', `0 0 ${W} ${H}`);
+    svg.selectAll('*').remove();
+
+    const world = svg.append('g').attr('class','world');
+
+    // Build nodes (id = normalized path)
+    const rawNodes = (graph.nodes||[]).map(p=>({ id: normalizePath(p.path), title: p.title || (p.path.split('/').pop()||'').replace(/\.html$/,''), path: p.path }));
+    const nodeMap = new Map(rawNodes.map(n=>[n.id, n]));
+
+    // Undirected edges for drawing (only edges whose nodes exist)
+    const edges = (graph.edges||[])
+      .map(e=>({ source: normalizePath(e.source), target: normalizePath(e.target) }))
+      .filter(e=> nodeMap.has(e.source) && nodeMap.has(e.target));
+
+    // Compute indegree from SEARCH_INDEX directed links (content links only)
+    const indegree = new Map(rawNodes.map(n=>[n.id, 0]));
+    const idx = window.SEARCH_INDEX || [];
+    idx.forEach(p=>{ (p._links||[]).forEach(to=>{ const t = normalizePath(to); if(indegree.has(t)) indegree.set(t, indegree.get(t)+1); }); });
+    let minD = Infinity, maxD = -Infinity; indegree.forEach(v=>{ if(v<minD) minD=v; if(v>maxD) maxD=v; });
+    const rMin = 8, rMax = 28;
+    function rFor(id){ const v = indegree.get(id) || 0; if(!(maxD>minD)) return (rMin+rMax)/2; return rMin + (v - minD) * (rMax-rMin) / (maxD-minD); }
+
+    rawNodes.forEach(n=>{ n.r = rFor(n.id); });
+
+    // Layers
+    const link = world.append('g').attr('class', linkLayerClass)
+      .attr('stroke','currentColor').attr('stroke-opacity',0.45)
+      .selectAll('line').data(edges).join('line');
+
+    const node = world.append('g').attr('class', nodeLayerClass)
+      .selectAll('circle').data(rawNodes).join('circle')
+        .attr('r', d=>d.r)
+        .attr('fill', '#2a76ff')
+        .attr('opacity', 0.9)
+        .attr('stroke', 'currentColor')
+        .attr('stroke-opacity', 0.5)
+        .style('cursor','pointer')
+        .on('click', (ev,d)=>{ closeGraph(); const href = toRootHref(d.path); if(SPA_ENABLED) navigateTo(href); else location.href = href; })
+        .append('title').text(d=>d.title);
+
+    // d3-force simulation
+    const sim = d3.forceSimulation(rawNodes)
+      .force('link', d3.forceLink(edges).id(d=>d.id).distance(150).strength(0.05))
+      .force('charge', d3.forceManyBody().strength(-280))
+      .force('center', d3.forceCenter(W/2, H/2))
+      .force('collide', d3.forceCollide().radius(d=>d.r + 6).iterations(2));
+    SIM = sim;
+
+    // Drag
+    const drag = d3.drag()
+      .on('start', (event,d)=>{ if(!event.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (event,d)=>{ d.fx = event.x; d.fy = event.y; })
+      .on('end',   (event,d)=>{ if(!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null; });
+    svg.selectAll('circle').call(drag);
+
+    sim.on('tick', ()=>{
+      link
+        .attr('x1', d=> d.source.x)
+        .attr('y1', d=> d.source.y)
+        .attr('x2', d=> d.target.x)
+        .attr('y2', d=> d.target.y);
+      svg.selectAll('circle')
+        .attr('cx', d=>d.x)
+        .attr('cy', d=>d.y);
+    });
+  }
 
   // ---------- Init ----------
   async function init(){
+    applyRuntimeStyles();
     ensureShell();
+    $$('.topnav').forEach(el=>el.remove()); // keep topnav removed
+
     const posts = await loadManifest();
     window.POSTS = posts;
     await buildSearchIndex(posts);
@@ -264,13 +569,15 @@
 
     const q = qs().get('q');
     const hasIndex = !!$('#recent-list');
-    if(hasIndex){ if(q){ if($('#main-title')) $('#main-title').textContent = 'Search results'; runSearchFromUI(); } else { buildIndex(posts); } }
-    else if(q) { location.href = toRootHref(`index.html?q=${encodeURIComponent(q)}`); return; }
+    if(hasIndex){ if(q){ if($('#main-title')) $('#main-title').textContent = 'Search results'; runSearchFromUI(); } else { buildIndex(posts); } updateIntroVisibility(); }
+    else if(q) { if(SPA_ENABLED) { navigateTo(toRootHref(`index.html?q=${encodeURIComponent(q)}`), { replace:true }); return; } else { location.href = toRootHref(`index.html?q=${encodeURIComponent(q)}`); return; } }
 
     enhancePostPage(posts);
     wireSearchUI();
     wireChrome();
     ensureMathJax();
+    measureChrome();
+    ensureContentFooter();
   }
 
   document.addEventListener('DOMContentLoaded', init);

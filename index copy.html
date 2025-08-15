@@ -5,22 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>My Minimal Blog</title>
   <link rel="stylesheet" href="assets/styles.css" />
-  <!-- Optional fallback manifest (used only if posts/index.json is missing) -->
-  <script defer src="assets/posts.js"></script>
   <script defer src="assets/site.js"></script>
-  <style>
-    /* Lightweight styles for the intro card (fits your dark theme vars) */
-    .intro{border:1px solid var(--border);background:var(--panel);border-radius:12px;padding:16px;margin:8px 0 18px}
-    .intro h2{margin:0 0 6px}
-    .intro h3{margin:12px 0 6px;font-size:14px;color:var(--muted)}
-    .intro ul{margin:6px 0 0 18px}
-    .intro a{color:var(--accent)}
-    .intro .folders{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
-  </style>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="index.html">Ethan's Personal Blog</a>
+    <a class="brand" href="index.html">My Minimal Blog</a>
 
     <!-- Centered global search -->
     <form id="search-form" class="searchbar center" role="search" autocomplete="off">
@@ -36,41 +25,24 @@
   </header>
 
   <div id="app" class="layout">
-    <!-- LEFT: Directory Tree -->
     <aside id="sidebar-left" class="sidebar left">
       <div class="sidebar-title">Posts</div>
       <div id="tree"></div>
     </aside>
 
-    <!-- MAIN: Intro + Recent / Search Results -->
     <main id="content" class="content">
-      <!-- INTRO SECTION (displays above Recent Posts) -->
-      <section id="intro" class="intro">
-        <h2>Hello! I'm Ethan.</h2>
-        <p>Welcome to my personal blog. I use this space to think in public and collect notes.</p>
-        
-        <h3>Purpose</h3>
-        <ul>
-          <li>Capture daily learnings and ideas</li>
-          <li>Publish short notes and longer references</li>
-          <li>Share experiments and projects</li>
-        </ul>
-        
-      </section>
-
       <h1 id="main-title">Recent Posts</h1>
       <div id="tag-context" class="muted"></div>
       <div id="search-status" class="muted" style="display:none;"></div>
       <ul id="recent-list" class="post-list"></ul>
     </main>
 
-    <!-- RIGHT: Tag list -->
     <aside id="sidebar-right" class="sidebar right">
       <div class="sidebar-title">Tags</div>
       <ul id="tag-list" class="tag-list"></ul>
     </aside>
   </div>
 
-  <footer class="footer muted">© <span id="year"></span> • Built with ChatGPT 5 + HTML/CSS/JS</footer>
+  <footer class="footer muted">© <span id="year"></span> • Built with HTML/CSS/JS + Search</footer>
 </body>
 </html>

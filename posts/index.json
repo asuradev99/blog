@@ -1,9 +1,9 @@
 {
-  "generated": "2025-08-14T02:42:30.867Z",
+  "generated": "2025-08-14T22:16:45.963Z",
   "posts": [
     {
       "title": "2025-08-14",
-      "path": "posts/Daily/2025-08-14.html",
+      "path": "posts/2025-08-14.html",
       "tags": [
         "daily"
       ],
@@ -11,7 +11,7 @@
     },
     {
       "title": "2025-08-13",
-      "path": "posts/Daily/2025-08-13.html",
+      "path": "posts/2025-08-13.html",
       "tags": [
         "daily"
       ],
@@ -19,7 +19,7 @@
     },
     {
       "title": "Hello World",
-      "path": "posts/Test/Hello-World.html",
+      "path": "posts/Hello-World.html",
       "tags": [
         "tag1",
         "tag2"
@@ -28,13 +28,13 @@
     },
     {
       "title": "New Post",
-      "path": "posts/Test/new-post.html",
+      "path": "posts/new-post.html",
       "tags": [],
       "date": "2025-08-13"
     },
     {
       "title": "2025-08-12",
-      "path": "posts/Daily/2025-08-12.html",
+      "path": "posts/2025-08-12.html",
       "tags": [
         "daily"
       ],
