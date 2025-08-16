@@ -24,7 +24,7 @@ const fname = `${date}.html`;
 const file  = path.join(DAILY_DIR, fname);
 fs.mkdirSync(DAILY_DIR, { recursive: true });
 
-const relToAssets = path.join('..','..','assets'); // posts/Daily/file.html → ../../assets
+const relToAssets = path.join('..','assets'); // posts/Daily/file.html → ../../assets
 const html = `<!doctype html>
 <html lang="en">
 <head>

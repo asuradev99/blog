@@ -33,7 +33,7 @@ const relDir = path.join('posts', dirArg);
 const outDir = path.join(ROOT, relDir);
 const slug   = slugify(titleArg) || `post-${Date.now()}`;
 const file   = path.join(outDir, `${slug}.html`);
-const relToAssets = path.join('..','..','assets'); // posts/<dir>/file.html → ../../assets
+const relToAssets = path.join('..','assets'); // posts/<dir>/file.html → ../../assets
 
 fs.mkdirSync(outDir, { recursive: true });
 
