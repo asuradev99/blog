@@ -6,7 +6,7 @@
   const qs = () => new URLSearchParams(location.search);
 
   // ---------- SPA settings ----------
-  const SPA_ENABLED = location.protocol === 'http:' || location.protocol === 'https:';
+  const SPA_ENABLED = false //location.protocol === 'http:' || location.protocol === 'https:';
   const PAGE_CACHE = new Map(); // path+search -> html text
 
   // ---------- Root‑safe linking ----------
@@ -89,7 +89,7 @@
     const header = document.createElement('header');
     header.className = 'topbar';
     header.innerHTML = `
-      <a class="brand" href="${toRootHref('index.html')}">My Minimal Blog</a>
+      <a class="brand" href="/index.html">My Minimal Blog</a>
       <form id="search-form" class="searchbar center" role="search" autocomplete="off">
         <input id="search-input" type="search" placeholder="Search… (use tag:foo tag:bar)" aria-label="Search posts" />
         <button id="search-clear" type="button" class="ghost tiny" aria-label="Clear search">×</button>
