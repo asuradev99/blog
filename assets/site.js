@@ -20,7 +20,13 @@
 
   // ---------- Runtime layout/style injection ----------
   function applyRuntimeStyles() {
-    if ($('#runtime-style')) return;
+    if ($('#runtime-style')) {
+      console.log("[site] Runtime styles already applied");
+      return;
+
+    } else {
+      console.log("[site] Runtime styles not yet applied");
+    }
     const s = document.createElement('style');
     s.id = 'runtime-style';
     s.textContent = `

@@ -11,7 +11,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT = process.cwd();
-const DAILY_DIR = path.join(ROOT, 'posts', 'Daily');
+const DAILY_DIR = path.join(ROOT, 'posts');
 
 function today(){
   const d = new Date();
