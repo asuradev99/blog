@@ -6,9 +6,7 @@
   const qs = () => new URLSearchParams(location.search);
 
   // ---------- SPA settings ----------
-  const SPA_ENABLED = false //location.protocol === 'http:' || location.protocol === 'https:';
-  const PAGE_CACHE = new Map(); // path+search -> html text
-
+    
   // ---------- Root‑safe linking ----------
   function getSiteBase() {
     const p = location.pathname;
@@ -47,13 +45,6 @@
 
       /* Content-only footer styling */
       .content-footer.footer { text-align: center; padding: 18px 0; opacity: .8; }
-
-      /* Graph overlay */
-      #graph-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9999; display: none; }
-      #graph-overlay .panel { position: absolute; left: 50%; top: 8%; transform: translateX(-50%); width: min(1100px, 92vw); height: min(740px, 84vh); background: var(--panel, #121825); border: 1px solid var(--border, #1f2635); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.45); display: flex; flex-direction: column; }
-      .graph-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border, #1f2635); }
-      .graph-toolbar .title { font-weight: 600; opacity: .9; }
-      .graph-canvas { flex: 1; }
       .ghost { background: transparent; color: var(--muted, #9aa4b2); border: 1px solid var(--border, #1f2635); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
       .ghost:hover { color: var(--text,#e5e7eb); border-color: var(--accent-2,#7dd3fc); }
     `;
@@ -82,8 +73,7 @@
   // ---------- Minimal shell injector (for bare post pages) ----------
   function ensureShell() {
     if ($('.layout')) {
-      $$('.topnav').forEach(el => el.remove()); // ensure old topnav removed
-      if (!$('.topbar .actions')) { const actions = document.createElement('div'); actions.className = 'actions'; actions.innerHTML = `<button id="graph-btn" class="ghost" type="button">Graph</button>`; $('.topbar')?.appendChild(actions); }
+      $$('.topnav').forEach(el => el.remove());
       return;
     }
     const header = document.createElement('header');
@@ -93,10 +83,7 @@
       <form id="search-form" class="searchbar center" role="search" autocomplete="off">
         <input id="search-input" type="search" placeholder="Search… (use tag:foo tag:bar)" aria-label="Search posts" />
         <button id="search-clear" type="button" class="ghost tiny" aria-label="Clear search">×</button>
-      </form>
-      <div class="actions">
-        <button id="graph-btn" class="ghost" type="button">Graph</button>
-      </div>`;
+      </form>`;
 
     const bodyNodes = Array.from(document.body.childNodes);
 
@@ -329,109 +316,16 @@
   }
 
   function parseQuery(q) { const terms = []; const tags = []; (q || '').split(/\s+/).filter(Boolean).forEach(tok => { if (/^tag:/i.test(tok)) tags.push(tok.slice(4).toLowerCase()); else if (/^#/.test(tok)) tags.push(tok.slice(1).toLowerCase()); else terms.push(tok.toLowerCase()); }); return { terms, tags }; }
-  function searchPosts(q) { const { terms, tags } = parseQuery(q); const src = window.SEARCH_INDEX || window.POSTS || []; const andMatch = (text, need) => need.every(t => text.includes(t)); return src.filter(p => { const text = (p._text || (p.title || '').toLowerCase()); const hasTerms = terms.length ? andMatch(text, terms) : true; const ptags = (p.tags || []).map(s => s.toLowerCase()); const hasTags = tags.length ? tags.every(t => ptags.includes(t)) : true; return hasTerms && hasTags; }).sort(byDateDesc); }
-  function runSearchFromUI() { const input = $('#search-input'); if (!input) return; const q = input.value.trim(); const list = $('#recent-list'); if (!list) { const dest = q ? `index.html?q=${encodeURIComponent(q)}` : 'index.html'; if (SPA_ENABLED) { navigateTo(toRootHref(dest)); } else { location.href = toRootHref(dest); } return; } if (!q) { if ($('#main-title')) $('#main-title').textContent = 'Recent Posts'; if ($('#tag-context')) $('#tag-context').innerHTML = ''; renderList((window.POSTS || []).slice().sort(byDateDesc)); history.replaceState(null, '', toRootHref('index.html')); updateIntroVisibility(); ensureContentFooter(); return; } const results = searchPosts(q); if ($('#main-title')) $('#main-title').textContent = 'Search results'; if ($('#tag-context')) $('#tag-context').textContent = `${results.length} result${results.length !== 1 ? 's' : ''} for “${q}”`; renderList(results); const url = new URL(location.href); url.search = `?q=${encodeURIComponent(q)}`; history.replaceState(null, '', url); updateIntroVisibility(); ensureContentFooter(); }
+  function searchPosts(q) { const { terms, tags } = parseQuery(q); const src = window.SEARCH_INDEX || window.POSTS || []; const andMatch = (text, need) => need.every(t => text.includes(t)); return src.filter(p => { const text = (p._text || (p.title || '').toLowerCase()); const ptags = (p.tags || []).map(s => s.toLowerCase()); const hasTerms = terms.length ? andMatch(text, terms) : true; const hasTags = tags.length ? tags.every(t => ptags.includes(t)) : true; return hasTerms && hasTags; }).sort(byDateDesc); }
+  function runSearchFromUI() { const input = $('#search-input'); if (!input) return; const q = input.value.trim(); const list = $('#recent-list'); if (!list) { const dest = q ? `index.html?q=${encodeURIComponent(q)}` : 'index.html'; location.href = toRootHref(dest); return; } if (!q) { if ($('#main-title')) $('#main-title').textContent = 'Recent Posts'; if ($('#tag-context')) $('#tag-context').innerHTML = ''; renderList((window.POSTS || []).slice().sort(byDateDesc)); history.replaceState(null, '', toRootHref('index.html')); updateIntroVisibility(); ensureContentFooter(); return; } const results = searchPosts(q); if ($('#main-title')) $('#main-title').textContent = 'Search results'; if ($('#tag-context')) $('#tag-context').textContent = `${results.length} result${results.length !== 1 ? 's' : ''} for “${q}”`; renderList(results); const url = new URL(location.href); url.search = `?q=${encodeURIComponent(q)}`; history.replaceState(null, '', url); updateIntroVisibility(); ensureContentFooter(); }
   function wireSearchUI() { const form = $('#search-form'); const input = $('#search-input'); const clearBtn = $('#search-clear'); if (form && input) { form.addEventListener('submit', e => { e.preventDefault(); runSearchFromUI(); }); input.addEventListener('keydown', e => { if (e.key === 'Escape') { input.value = ''; runSearchFromUI(); } }); clearBtn?.addEventListener('click', () => { input.value = ''; runSearchFromUI(); }); window.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); } }); const q = qs().get('q'); if (q) { input.value = q; } } }
 
   // ---------- Footer year + layout measuring ----------
   function wireChrome() {
-    applyRuntimeStyles(); measureChrome(); window.addEventListener('resize', measureChrome);
-    // ⬇️ NEW: delegate graph wiring to assets/graph.js
-    if (window.GraphView) {
-      window.GraphView.init({
-        toRootHref,
-        navigateTo,
-        SPA_ENABLED,
-        normalizePath
-      });
-    }
+    applyRuntimeStyles();
+    measureChrome();
+    window.addEventListener('resize', measureChrome);
   }
-
-  // ---------- SPA navigation ----------
-  function shouldIntercept(a, e) {
-    if (!SPA_ENABLED) return false;
-    if (!a) return false;
-    if (a.target && a.target !== '_self') return false;
-    if (a.hasAttribute('download') || a.hasAttribute('data-no-spa')) return false;
-    if (e && (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return false;
-    const url = new URL(a.href, location.href);
-    if (url.origin !== location.origin) return false;
-    const base = getSiteBase();
-    const rel = (url.pathname.startsWith(base) ? url.pathname.slice(base.length) : normalizePath(url.pathname));
-    if (/^posts\/.+\.html$/i.test(rel)) return true;
-    if (/index\.html$/i.test(rel) || rel === '') return true;
-    return false;
-  }
-  
-  async function navigateTo(href, opts = {}) {
-    if (!SPA_ENABLED) { location.href = href; return; }
-    const url = new URL(href, location.href);
-    const cacheKey = url.pathname + url.search;
-    let html;
-    try {
-      if (PAGE_CACHE.has(cacheKey)) {
-        html = PAGE_CACHE.get(cacheKey);
-      } else {
-        const res = await fetch(url.href, { cache: 'no-store' });
-        if (!res.ok) throw new Error('Fetch failed');
-        html = await res.text();
-        PAGE_CACHE.set(cacheKey, html);
-      }
-    } catch (err) { location.href = url.href; return; }
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const fetchedArticle = doc.querySelector('#post-article');
-    const fetchedMain = doc.querySelector('#content');
-    const content = $('#content');
-    if (fetchedArticle) { content.innerHTML = ''; content.appendChild(fetchedArticle.cloneNode(true)); }
-    else if (fetchedMain) { content.innerHTML = fetchedMain.innerHTML; }
-    else { content.innerHTML = doc.body.innerHTML; }
-
-    const newTitle = doc.querySelector('meta[name="title"]')?.getAttribute('content') || doc.title;
-    if (newTitle) document.title = newTitle;
-
-    if (opts.replace) history.replaceState({}, '', url.href); else history.pushState({}, '', url.href);
-
-    wireSearchUI();
-    const posts = window.POSTS || [];
-    buildLeftTree(posts);
-    buildRightTags(posts);
-
-    if ($('#post-article')) { enhancePostPage(posts); }
-    else if ($('#recent-list')) {
-      const q = qs().get('q');
-      if (q) { const input = $('#search-input'); if (input) input.value = q; runSearchFromUI(); }
-      else { buildIndex(posts); }
-    }
-
-    updateIntroVisibility();
-    ensureMathJax();
-    try { window.MathJax?.typesetPromise?.(); } catch (_) { }
-    const scroller = $('#content');
-    scroller && (scroller.scrollTop = 0);
-    ensureContentFooter();
-  }
-
-  document.addEventListener('click', (e) => {
-    const a = e.target.closest('a');
-    if (shouldIntercept(a, e)) {
-      e.preventDefault();
-      navigateTo(a.href);
-    }
-  });
-  document.addEventListener('mouseover', (e) => {
-    const a = e.target.closest('a');
-    if (!shouldIntercept(a)) return;
-    const url = new URL(a.href, location.href);
-    const key = url.pathname + url.search;
-    if (!PAGE_CACHE.has(key)) {
-      fetch(url.href, { cache: 'no-store' }).then(r => r.ok ? r.text() : Promise.reject()).then(t => PAGE_CACHE.set(key, t)).catch(() => { });
-    }
-  });
-  window.addEventListener('popstate', () => { navigateTo(location.href, { replace: true }); });
-
-  
 
   // ---------- Init ----------
   async function init(){
@@ -448,7 +342,7 @@
     const q = qs().get('q');
     const hasIndex = !!$('#recent-list');
     if(hasIndex){ if(q){ if($('#main-title')) $('#main-title').textContent = 'Search results'; runSearchFromUI(); } else { buildIndex(posts); } updateIntroVisibility(); }
-    else if(q) { if(SPA_ENABLED) { navigateTo(toRootHref(`index.html?q=${encodeURIComponent(q)}`), { replace:true }); return; } else { location.href = toRootHref(`index.html?q=${encodeURIComponent(q)}`); return; } }
+    else if(q) { location.href = toRootHref(`index.html?q=${encodeURIComponent(q)}`); return; }
 
     enhancePostPage(posts);
     wireSearchUI();
