@@ -17,7 +17,7 @@
     const last = p.lastIndexOf('/');
     return p.slice(0, last + 1);
   }
-  function toRootHref(rel) { rel = String(rel || '').replace(/^\/+/, ''); return getSiteBase() + rel; }
+  function toRootHref(rel) { rel = String(rel || '').replace(/^\/+/, ''); console.log(getSiteBase()+rel); return getSiteBase() + rel; }
   function currentRelPath() { const base = getSiteBase(); let rel = location.pathname; if (rel.startsWith(base)) rel = rel.slice(base.length); return normalizePath(rel); }
 
   // ---------- Runtime layout/style injection ----------

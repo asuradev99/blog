@@ -1,6 +1,15 @@
 {
-  "generated": "2025-08-14T22:16:45.963Z",
+  "generated": "2025-08-16T08:08:49.376Z",
   "posts": [
+    {
+      "title": "2025-08-15",
+      "path": "posts/2025-08-15.html",
+      "tags": [
+        "daily",
+        "mindmap"
+      ],
+      "date": "2025-08-15"
+    },
     {
       "title": "2025-08-14",
       "path": "posts/2025-08-14.html",
@@ -8,14 +17,6 @@
         "daily"
       ],
       "date": "2025-08-14"
-    },
-    {
-      "title": "2025-08-13",
-      "path": "posts/2025-08-13.html",
-      "tags": [
-        "daily"
-      ],
-      "date": "2025-08-13"
     },
     {
       "title": "Hello World",

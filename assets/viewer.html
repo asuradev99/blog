@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/d3@7" crossorigin="anonymous"></script>
   <style>
     :root {
-      --bg: #0b0f14;          /* very dark blue-gray */
+      --bg: #131416;          /* very dark blue-gray */
       --panel: #121821;       /* slightly lighter than bg */
       --text: #e5e7eb;        /* gray-100 */
       --muted: #9aa3af;       /* gray-400 */
@@ -249,10 +249,15 @@
   updateCenter();
   updateSpread();
 
-  // Zoom behavior (background pan/zoom)
-  const zoom = d3.zoom().scaleExtent([0.2, 3]).on('zoom', (event) => {
-    zoomLayer.attr('transform', event.transform);
-  });
+  // Zoom behavior (background pan/zoom) — require click-to-focus for wheel zoom
+  // Give focus to the SVG when the user clicks/presses inside it
+  svg.on('pointerdown', () => { const n = svg.node(); n && n.focus && n.focus(); });
+  const zoom = d3.zoom()
+    .filter((event) => event.type !== 'wheel' || document.activeElement === svg.node())
+    .scaleExtent([0.2, 3])
+    .on('zoom', (event) => {
+      zoomLayer.attr('transform', event.transform);
+    });
   svg.call(zoom);
 
   // Prevent the default right-click menu over the SVG
@@ -786,13 +791,21 @@
   // Bootstrap: prefer external JSON path via global var; else seed default
   (async function boot(){
     const qs = new URLSearchParams(location.search);
-    const path = window.MINDMAP_JSON_PATH || window.MAP_JSON_PATH || window.MINDMAP_JSON_URL || null;
+    const qsJson = qs.get('json');
+    // If the query string provides ?json=..., mirror it into the legacy/global var
+    // so hosts that expect window.MINDMAP_PATH_JSON still work.
+    if (qsJson) {
+      window.MINDMAP_PATH_JSON = qsJson;
+    }
+    const path = qsJson || window.MINDMAP_PATH_JSON || window.MINDMAP_JSON_PATH || window.MAP_JSON_PATH || window.MINDMAP_JSON_URL || null;
     if (path) {
       await loadExternalJSON(path);
       return;
     }
     // Seed with a tiny example so the canvas isn’t empty
-    
+    const a = {id:'Idea'}, b = {id:'Research'}, c = {id:'Notes'};
+    nodes.push(a,b,c);
+    links.push({source:'Idea', target:'Research'}, {source:'Research', target:'Notes'});
     render();
     restart(0.8);
     // Capture baseline after initial seed so Reset can restore it
