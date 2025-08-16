@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="assets/styles.css" />
   <!-- Optional fallback manifest (used only if posts/index.json is missing) -->
   <script defer src="assets/posts.js"></script>
+  <script defer src="assets/graph.js"></script>
   <script defer src="assets/site.js"></script>
   <style>
     /* Lightweight styles for the intro card (fits your dark theme vars) */
@@ -55,6 +56,11 @@
           <li>Publish short notes and longer references</li>
           <li>Share experiments and projects</li>
         </ul>
+
+        <iframe
+          src="assets/viewer.html?json=./mindmap.json"
+          style="width:100%;height:600px;border:0;"
+        ></iframe>
         
       </section>
 

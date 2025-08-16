@@ -1,8 +1,8 @@
-(function(){
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-  const normalizePath = p => String(p||'').replace(/^\/+/, '').replace(/\\+/g,'/');
-  const byDateDesc = (a, b) => new Date(b.date||0) - new Date(a.date||0);
+(function () {
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const normalizePath = p => String(p || '').replace(/^\/+/, '').replace(/\\+/g, '/');
+  const byDateDesc = (a, b) => new Date(b.date || 0) - new Date(a.date || 0);
   const qs = () => new URLSearchParams(location.search);
 
   // ---------- SPA settings ----------
@@ -10,19 +10,19 @@
   const PAGE_CACHE = new Map(); // path+search -> html text
 
   // ---------- Root‑safe linking ----------
-  function getSiteBase(){
+  function getSiteBase() {
     const p = location.pathname;
     const idx = p.indexOf('/posts/');
     if (idx !== -1) return p.slice(0, idx + 1); // keep trailing slash
     const last = p.lastIndexOf('/');
     return p.slice(0, last + 1);
   }
-  function toRootHref(rel){ rel = String(rel || '').replace(/^\/+/, ''); return getSiteBase() + rel; }
-  function currentRelPath(){ const base = getSiteBase(); let rel = location.pathname; if (rel.startsWith(base)) rel = rel.slice(base.length); return normalizePath(rel); }
+  function toRootHref(rel) { rel = String(rel || '').replace(/^\/+/, ''); return getSiteBase() + rel; }
+  function currentRelPath() { const base = getSiteBase(); let rel = location.pathname; if (rel.startsWith(base)) rel = rel.slice(base.length); return normalizePath(rel); }
 
   // ---------- Runtime layout/style injection ----------
-  function applyRuntimeStyles(){
-    if($('#runtime-style')) return;
+  function applyRuntimeStyles() {
+    if ($('#runtime-style')) return;
     const s = document.createElement('style');
     s.id = 'runtime-style';
     s.textContent = `
@@ -59,31 +59,31 @@
     `;
     document.head.appendChild(s);
   }
-  function measureChrome(){
+  function measureChrome() {
     const top = $('.topbar');
     const topH = top ? Math.ceil(top.getBoundingClientRect().height) : 54;
     document.documentElement.style.setProperty('--topbar-h', topH + 'px');
   }
 
   // Ensure a footer exists inside #content, remove any global footer
-  function ensureContentFooter(){
-    $$('.footer').forEach(f => { if(!f.closest('#content')) f.remove(); });
-    const content = $('#content'); if(!content) return;
+  function ensureContentFooter() {
+    $$('.footer').forEach(f => { if (!f.closest('#content')) f.remove(); });
+    const content = $('#content'); if (!content) return;
     let cf = content.querySelector('.content-footer.footer');
-    if(!cf){
+    if (!cf) {
       cf = document.createElement('div');
       cf.className = 'content-footer footer muted';
       cf.innerHTML = `© <span class="year"></span> • Built with HTML/CSS/JS + MathJax`;
       content.appendChild(cf);
     }
-    const yEl = cf.querySelector('.year'); if(yEl) yEl.textContent = new Date().getFullYear();
+    const yEl = cf.querySelector('.year'); if (yEl) yEl.textContent = new Date().getFullYear();
   }
 
   // ---------- Minimal shell injector (for bare post pages) ----------
-  function ensureShell(){
+  function ensureShell() {
     if ($('.layout')) {
-      $$('.topnav').forEach(el=>el.remove()); // ensure old topnav removed
-      if(!$('.topbar .actions')){ const actions=document.createElement('div'); actions.className='actions'; actions.innerHTML=`<button id="graph-btn" class="ghost" type="button">Graph</button>`; $('.topbar')?.appendChild(actions); }
+      $$('.topnav').forEach(el => el.remove()); // ensure old topnav removed
+      if (!$('.topbar .actions')) { const actions = document.createElement('div'); actions.className = 'actions'; actions.innerHTML = `<button id="graph-btn" class="ghost" type="button">Graph</button>`; $('.topbar')?.appendChild(actions); }
       return;
     }
     const header = document.createElement('header');
@@ -120,7 +120,7 @@
 
     const main = $('#content');
     let article = $('#post-article');
-    if(!article){
+    if (!article) {
       article = document.createElement('article');
       article.id = 'post-article';
       article.className = 'article';
@@ -128,56 +128,56 @@
       bodyNodes.forEach(n => frag.appendChild(n));
       article.appendChild(frag);
     }
-    if(!article.querySelector('h1')){
+    if (!article.querySelector('h1')) {
       const h1 = document.createElement('h1');
       const metaTitle = document.querySelector('meta[name="title"]')?.getAttribute('content');
       h1.textContent = metaTitle || document.title || 'Untitled';
       article.insertBefore(h1, article.firstChild);
     }
-    if(!$('#post-meta', article)){
+    if (!$('#post-meta', article)) {
       const metaDiv = document.createElement('div');
       metaDiv.id = 'post-meta';
       const after = article.querySelector('h1');
-      (after||article).insertAdjacentElement('afterend', metaDiv);
+      (after || article).insertAdjacentElement('afterend', metaDiv);
     }
     main.appendChild(article);
     ensureContentFooter();
   }
 
   // ---------- Manifest loader (JSON-only; no posts.js fallback) ----------
-  async function loadManifest(){
+  async function loadManifest() {
     const url = toRootHref('posts/index.json');
     try {
       const bust = (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
       const res = await fetch(url + bust, { cache: 'no-store' });
-      if(!res.ok) throw new Error('Failed to load posts/index.json');
+      if (!res.ok) throw new Error('Failed to load posts/index.json');
       const data = await res.json();
       const arr = Array.isArray(data) ? data : (data.posts || []);
       return Array.isArray(arr) ? arr : [];
     } catch (err) {
       console.error('[site] Manifest load error:', err);
       const status = document.querySelector('#search-status');
-      if(status){ status.style.display='block'; status.textContent = 'Could not load posts/index.json'; }
+      if (status) { status.style.display = 'block'; status.textContent = 'Could not load posts/index.json'; }
       return [];
     }
   }
 
   // ---------- Intro visibility helpers ----------
-  function setIntroVisible(visible){ $$('#intro, #intro-section, .intro, .intro-block').forEach(el => { if(el) el.style.display = visible ? '' : 'none'; }); }
-  function updateIntroVisibility(){ const p = qs(); const hasTag = !!p.get('tag'); const q = (p.get('q')||'').trim(); const showIntro = !(hasTag || q); setIntroVisible(showIntro); }
+  function setIntroVisible(visible) { $$('#intro, #intro-section, .intro, .intro-block').forEach(el => { if (el) el.style.display = visible ? '' : 'none'; }); }
+  function updateIntroVisibility() { const p = qs(); const hasTag = !!p.get('tag'); const q = (p.get('q') || '').trim(); const showIntro = !(hasTag || q); setIntroVisible(showIntro); }
 
   // ---------- Sidebar (flat list — no directories) ----------
-  function buildLeftTree(posts){
-    const mount = $('#tree'); if(!mount) return;
-    mount.innerHTML='';
+  function buildLeftTree(posts) {
+    const mount = $('#tree'); if (!mount) return;
+    mount.innerHTML = '';
     const ul = document.createElement('ul');
     ul.className = 'tree flat';
     const activeRel = currentRelPath();
-    const files = (posts||[]).slice().sort((a,b)=> (a.title||'').localeCompare(b.title||''));
-    files.forEach(p=>{
+    const files = (posts || []).slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    files.forEach(p => {
       const li = document.createElement('li'); li.className = 'file';
-      const a = document.createElement('a'); a.href = toRootHref(p.path); a.textContent = p.title || (p.path.split('/').pop()||'').replace(/\.html$/,'');
-      const isActive = normalizePath(p.path) === activeRel; if(isActive) a.classList.add('active');
+      const a = document.createElement('a'); a.href = toRootHref(p.path); a.textContent = p.title || (p.path.split('/').pop() || '').replace(/\.html$/, '');
+      const isActive = normalizePath(p.path) === activeRel; if (isActive) a.classList.add('active');
       const wrap = document.createElement('div'); wrap.className = 'node' + (isActive ? ' active' : '');
       wrap.appendChild(a); li.appendChild(wrap); ul.appendChild(li);
     });
@@ -185,26 +185,26 @@
   }
 
   // ---------- Tags (right sidebar) ----------
-  function buildRightTags(posts){ const map = new Map(); (posts||[]).forEach(p => (p.tags||[]).forEach(t => map.set(t, (map.get(t)||0)+1))); const list = $('#tag-list'); if(!list) return; list.innerHTML=''; [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([tag,count])=>{ const li = document.createElement('li'); const a = document.createElement('a'); a.href = toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent = tag; a.addEventListener('click',(ev)=>{ if(ev.shiftKey||ev.ctrlKey||ev.metaKey){ ev.preventDefault(); const inp=$('#search-input'); if(inp){ inp.value=(inp.value+` tag:${tag}`).trim(); runSearchFromUI(); } } }); const c = document.createElement('span'); c.className='count'; c.textContent=count; li.appendChild(a); li.appendChild(c); list.appendChild(li); }); }
-  function chip(tag){ const a=document.createElement('a'); a.className='tag-chip'; a.href=toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent=`#${tag}`; a.addEventListener('click',(ev)=>{ if(ev.shiftKey||ev.ctrlKey||ev.metaKey){ ev.preventDefault(); const inp=$('#search-input'); if(inp){ inp.value=(inp.value+` tag:${tag}`).trim(); runSearchFromUI(); } } }); return a; }
+  function buildRightTags(posts) { const map = new Map(); (posts || []).forEach(p => (p.tags || []).forEach(t => map.set(t, (map.get(t) || 0) + 1))); const list = $('#tag-list'); if (!list) return; list.innerHTML = '';[...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([tag, count]) => { const li = document.createElement('li'); const a = document.createElement('a'); a.href = toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent = tag; a.addEventListener('click', (ev) => { if (ev.shiftKey || ev.ctrlKey || ev.metaKey) { ev.preventDefault(); const inp = $('#search-input'); if (inp) { inp.value = (inp.value + ` tag:${tag}`).trim(); runSearchFromUI(); } } }); const c = document.createElement('span'); c.className = 'count'; c.textContent = count; li.appendChild(a); li.appendChild(c); list.appendChild(li); }); }
+  function chip(tag) { const a = document.createElement('a'); a.className = 'tag-chip'; a.href = toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent = `#${tag}`; a.addEventListener('click', (ev) => { if (ev.shiftKey || ev.ctrlKey || ev.metaKey) { ev.preventDefault(); const inp = $('#search-input'); if (inp) { inp.value = (inp.value + ` tag:${tag}`).trim(); runSearchFromUI(); } } }); return a; }
 
   // ---------- Index page ----------
-  function renderList(posts){ const list=$('#recent-list'); if(!list) return; list.innerHTML=''; posts.forEach(p=>{ const li=document.createElement('li'); li.className='post-item'; const link=document.createElement('a'); link.href=toRootHref(p.path); link.textContent=p.title; const meta=document.createElement('div'); meta.className='meta'; const date=document.createElement('span'); date.textContent=p.date?new Date(p.date).toLocaleDateString():''; meta.appendChild(date); (p.tags||[]).forEach(t=>meta.appendChild(chip(t))); li.appendChild(link); li.appendChild(meta); list.appendChild(li); }); }
-  function buildIndex(posts){ const tag=qs().get('tag'); const sorted=(posts||[]).slice().sort(byDateDesc); const shown=tag?sorted.filter(p=>(p.tags||[]).includes(tag)):sorted; if($('#main-title')) $('#main-title').textContent=tag?`Posts tagged “${tag}”`:'Recent Posts'; if($('#tag-context')) $('#tag-context').innerHTML=tag?`<a class="tag-chip" href="${toRootHref('index.html')}">Clear tag</a>`:''; renderList(shown); updateIntroVisibility(); ensureContentFooter(); }
+  function renderList(posts) { const list = $('#recent-list'); if (!list) return; list.innerHTML = ''; posts.forEach(p => { const li = document.createElement('li'); li.className = 'post-item'; const link = document.createElement('a'); link.href = toRootHref(p.path); link.textContent = p.title; const meta = document.createElement('div'); meta.className = 'meta'; const date = document.createElement('span'); date.textContent = p.date ? new Date(p.date).toLocaleDateString() : ''; meta.appendChild(date); (p.tags || []).forEach(t => meta.appendChild(chip(t))); li.appendChild(link); li.appendChild(meta); list.appendChild(li); }); }
+  function buildIndex(posts) { const tag = qs().get('tag'); const sorted = (posts || []).slice().sort(byDateDesc); const shown = tag ? sorted.filter(p => (p.tags || []).includes(tag)) : sorted; if ($('#main-title')) $('#main-title').textContent = tag ? `Posts tagged “${tag}”` : 'Recent Posts'; if ($('#tag-context')) $('#tag-context').innerHTML = tag ? `<a class="tag-chip" href="${toRootHref('index.html')}">Clear tag</a>` : ''; renderList(shown); updateIntroVisibility(); ensureContentFooter(); }
 
   // ---------- Daily prev/next (defined by tag "daily") ----------
-  const hasDailyTag = (p) => (p && (p.tags||[]).some(t => String(t).toLowerCase()==='daily'));
-  function addDailyNav(posts, entry){
-    if(!entry || !hasDailyTag(entry)) return;
-    const daily = (posts||[])
+  const hasDailyTag = (p) => (p && (p.tags || []).some(t => String(t).toLowerCase() === 'daily'));
+  function addDailyNav(posts, entry) {
+    if (!entry || !hasDailyTag(entry)) return;
+    const daily = (posts || [])
       .filter(hasDailyTag)
       .slice()
-      .sort((a,b)=> String(a.date||'').localeCompare(String(b.date||''))); // ascending by date string
+      .sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))); // ascending by date string
 
     const idx = daily.findIndex(x => x.path === entry.path);
-    if(idx === -1) return;
-    const prev = daily[idx-1];
-    const next = daily[idx+1];
+    if (idx === -1) return;
+    const prev = daily[idx - 1];
+    const next = daily[idx + 1];
 
     const article = $('#post-article');
     const h1 = article?.querySelector('h1');
@@ -215,49 +215,49 @@
     nav.style.justifyContent = 'flex-start';
     nav.style.gap = '10px';
     const parts = [];
-    if(prev) parts.push(`<a class="prev" href="${toRootHref(prev.path)}">← ${prev.title || prev.date || ''}</a>`);
-    if(next) parts.push(`<a class="next" href="${toRootHref(next.path)}">${next.title || next.date || ''} →</a>`);
+    if (prev) parts.push(`<a class="prev" href="${toRootHref(prev.path)}">← ${prev.title || prev.date || ''}</a>`);
+    if (next) parts.push(`<a class="next" href="${toRootHref(next.path)}">${next.title || next.date || ''} →</a>`);
     nav.innerHTML = parts.join(' <span class="sep">•</span> ');
 
-    if(h1) h1.insertAdjacentElement('afterend', nav); else article?.insertAdjacentElement('afterbegin', nav);
+    if (h1) h1.insertAdjacentElement('afterend', nav); else article?.insertAdjacentElement('afterbegin', nav);
   }
 
   // ---------- Post page augment ----------
-  function enhancePostPage(posts){
-    const article=$('#post-article'); if(!article) return;
-    let metaWrap=$('#post-meta', article); if(!metaWrap){ metaWrap=document.createElement('div'); metaWrap.id='post-meta'; const h1=article.querySelector('h1'); (h1||article).insertAdjacentElement('afterend', metaWrap); }
+  function enhancePostPage(posts) {
+    const article = $('#post-article'); if (!article) return;
+    let metaWrap = $('#post-meta', article); if (!metaWrap) { metaWrap = document.createElement('div'); metaWrap.id = 'post-meta'; const h1 = article.querySelector('h1'); (h1 || article).insertAdjacentElement('afterend', metaWrap); }
 
-    const rel=currentRelPath();
-    const entry=(posts||[]).find(p=>normalizePath(p.path)===rel);
+    const rel = currentRelPath();
+    const entry = (posts || []).find(p => normalizePath(p.path) === rel);
 
-    const tagsFromMeta=()=>{ const m=document.querySelector('meta[name="tags"], meta[name="keywords"]'); return m?m.getAttribute('content').split(',').map(s=>s.trim()).filter(Boolean):[]; };
-    const dateFromMeta=()=>document.querySelector('meta[name="date"], time[datetime]')?.getAttribute('content')||'';
+    const tagsFromMeta = () => { const m = document.querySelector('meta[name="tags"], meta[name="keywords"]'); return m ? m.getAttribute('content').split(',').map(s => s.trim()).filter(Boolean) : []; };
+    const dateFromMeta = () => document.querySelector('meta[name="date"], time[datetime]')?.getAttribute('content') || '';
 
     // Remove any existing legacy backlink and don't add a new one
     $$('.backlink', article).forEach(el => el.remove());
 
-    metaWrap.innerHTML='';
+    metaWrap.innerHTML = '';
     const isDaily = hasDailyTag(entry);
-    const dateText=entry?.date||dateFromMeta();
-    if(dateText && !isDaily){ const d=document.createElement('span'); d.className='muted'; d.textContent=new Date(dateText).toLocaleDateString(); metaWrap.appendChild(d); }
-    const tags=entry?.tags||tagsFromMeta(); tags.forEach(t=>metaWrap.appendChild(chip(t)));
+    const dateText = entry?.date || dateFromMeta();
+    if (dateText && !isDaily) { const d = document.createElement('span'); d.className = 'muted'; d.textContent = new Date(dateText).toLocaleDateString(); metaWrap.appendChild(d); }
+    const tags = entry?.tags || tagsFromMeta(); tags.forEach(t => metaWrap.appendChild(chip(t)));
 
     addDailyNav(posts, entry);
     ensureContentFooter();
   }
 
   // ---------- MathJax ----------
-  function ensureMathJax(){ if(window.MathJax){ if(window.MathJax.typesetPromise) window.MathJax.typesetPromise(); return; } if(document.querySelector('script[data-mathjax]')) return; window.MathJax={ tex:{ inlineMath:[["$","$"],["\\(","\\)"]], displayMath:[["$$","$$"],["\\[","\\]"]] }, options:{ skipHtmlTags:['script','noscript','style','textarea','pre','code'] } }; const s=document.createElement('script'); s.async=true; s.src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'; s.setAttribute('data-mathjax','true'); document.head.appendChild(s); }
+  function ensureMathJax() { if (window.MathJax) { if (window.MathJax.typesetPromise) window.MathJax.typesetPromise(); return; } if (document.querySelector('script[data-mathjax]')) return; window.MathJax = { tex: { inlineMath: [["$", "$"], ["\\(", "\\)"]], displayMath: [["$$", "$$"], ["\\[", "\\]"]] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } }; const s = document.createElement('script'); s.async = true; s.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js'; s.setAttribute('data-mathjax', 'true'); document.head.appendChild(s); }
 
   // ---------- Search (titles + full content, multi‑tag) + LINK GRAPH ----------
-  function relFromUrl(urlObj){
+  function relFromUrl(urlObj) {
     const base = getSiteBase();
     let path = urlObj.pathname;
-    if(path.startsWith(base)) path = path.slice(base.length);
+    if (path.startsWith(base)) path = path.slice(base.length);
     return normalizePath(path);
   }
 
-  async function buildSearchIndex(posts){
+  async function buildSearchIndex(posts) {
     if (location.protocol === 'file:') {
       // Minimal index when running off file://
       window.SEARCH_INDEX = (posts || []).map(p => ({ ...p, _text: (p.title || '').toLowerCase(), _links: [] }));
@@ -265,301 +265,179 @@
       return;
     }
 
-    const status=$('#search-status');
-    const show=m=>{ if(status){ status.style.display='block'; status.textContent=m; } };
-    const hide=()=>{ if(status){ status.style.display='none'; status.textContent=''; } };
+    const status = $('#search-status');
+    const show = m => { if (status) { status.style.display = 'block'; status.textContent = m; } };
+    const hide = () => { if (status) { status.style.display = 'none'; status.textContent = ''; } };
 
-    const signature=JSON.stringify({ n:posts.length, last: posts[0]?.date || '' });
-    const cached=localStorage.getItem('SEARCH_INDEX_V2');
-    const cachedSig=localStorage.getItem('SEARCH_INDEX_SIG_V2');
-    if(cached && cachedSig===signature){ try{ const blob=JSON.parse(cached); window.SEARCH_INDEX=blob.index; window.LINK_GRAPH=blob.graph; return; }catch(e){} }
+    const signature = JSON.stringify({ n: posts.length, last: posts[0]?.date || '' });
+    const cached = localStorage.getItem('SEARCH_INDEX_V2');
+    const cachedSig = localStorage.getItem('SEARCH_INDEX_SIG_V2');
+    if (cached && cachedSig === signature) { try { const blob = JSON.parse(cached); window.SEARCH_INDEX = blob.index; window.LINK_GRAPH = blob.graph; return; } catch (e) { } }
 
     show('Building search index…');
-    const parser=new DOMParser();
-    const pathsSet = new Set((posts||[]).map(p=>normalizePath(p.path)));
+    const parser = new DOMParser();
+    const pathsSet = new Set((posts || []).map(p => normalizePath(p.path)));
 
-    const index=await Promise.all((posts||[]).map(async p=>{
-      try{
-        const res=await fetch(toRootHref(p.path), { cache:'no-store' });
-        const html=await res.text();
-        const doc=parser.parseFromString(html,'text/html');
-        const target=doc.querySelector('#post-article')||doc.querySelector('article')||doc.body;
-        const content=(target?.textContent||'').replace(/\s+/g,' ').trim();
+    const index = await Promise.all((posts || []).map(async p => {
+      try {
+        const res = await fetch(toRootHref(p.path), { cache: 'no-store' });
+        const html = await res.text();
+        const doc = parser.parseFromString(html, 'text/html');
+        const target = doc.querySelector('#post-article') || doc.querySelector('article') || doc.body;
+        const content = (target?.textContent || '').replace(/\s+/g, ' ').trim();
         // collect links
         const aTags = Array.from(doc.querySelectorAll('a[href]'));
         const baseUrl = new URL(toRootHref(p.path), location.href);
         const links = [];
-        aTags.forEach(a=>{
-          try{
-            const href=a.getAttribute('href'); if(!href) return;
+        aTags.forEach(a => {
+          try {
+            const href = a.getAttribute('href'); if (!href) return;
             const abs = new URL(href, baseUrl);
             const rel = relFromUrl(abs);
-            if(/^posts\/.+\.html$/i.test(rel) && pathsSet.has(rel)){
-              if(!links.includes(rel)) links.push(rel);
+            if (/^posts\/.+\.html$/i.test(rel) && pathsSet.has(rel)) {
+              if (!links.includes(rel)) links.push(rel);
             }
-          }catch(_){/* ignore */}
+          } catch (_) {/* ignore */ }
         });
-        return { ...p, _text: (p.title+' '+content).toLowerCase(), _links: links };
-      }catch(e){ return { ...p, _text: (p.title||'').toLowerCase(), _links: [] }; }
+        return { ...p, _text: (p.title + ' ' + content).toLowerCase(), _links: links };
+      } catch (e) { return { ...p, _text: (p.title || '').toLowerCase(), _links: [] }; }
     }));
 
     // Build undirected edge list (unique) and include Daily adjacency
-    const key = (a,b) => {
+    const key = (a, b) => {
       const aa = normalizePath(a), bb = normalizePath(b);
-      return aa < bb ? aa+'|'+bb : bb+'|'+aa;
+      return aa < bb ? aa + '|' + bb : bb + '|' + aa;
     };
     const seen = new Set();
     const edges = [];
-    index.forEach(p=>{
-      (p._links||[]).forEach(to => {
+    index.forEach(p => {
+      (p._links || []).forEach(to => {
         const k = key(p.path, to);
-        if(!seen.has(k)){ seen.add(k); edges.push({ source: p.path, target: to }); }
+        if (!seen.has(k)) { seen.add(k); edges.push({ source: p.path, target: to }); }
       });
     });
-    const daily = index.filter(hasDailyTag).slice().sort((a,b)=> String(a.date||'').localeCompare(String(b.date||'')));
-    for(let i=0;i<daily.length-1;i++){
-      const a = daily[i].path, b = daily[i+1].path; const k = key(a,b);
-      if(!seen.has(k)){ seen.add(k); edges.push({ source: a, target: b }); }
+    const daily = index.filter(hasDailyTag).slice().sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    for (let i = 0; i < daily.length - 1; i++) {
+      const a = daily[i].path, b = daily[i + 1].path; const k = key(a, b);
+      if (!seen.has(k)) { seen.add(k); edges.push({ source: a, target: b }); }
     }
 
     window.SEARCH_INDEX = index;
     window.LINK_GRAPH = { nodes: posts.slice(), edges };
-    try{ localStorage.setItem('SEARCH_INDEX_V2', JSON.stringify({ index, graph: window.LINK_GRAPH })); localStorage.setItem('SEARCH_INDEX_SIG_V2', signature); }catch(e){}
+    try { localStorage.setItem('SEARCH_INDEX_V2', JSON.stringify({ index, graph: window.LINK_GRAPH })); localStorage.setItem('SEARCH_INDEX_SIG_V2', signature); } catch (e) { }
     hide();
   }
 
-  function parseQuery(q){ const terms=[]; const tags=[]; (q||'').split(/\s+/).filter(Boolean).forEach(tok=>{ if(/^tag:/i.test(tok)) tags.push(tok.slice(4).toLowerCase()); else if(/^#/.test(tok)) tags.push(tok.slice(1).toLowerCase()); else terms.push(tok.toLowerCase()); }); return { terms, tags }; }
-  function searchPosts(q){ const {terms,tags}=parseQuery(q); const src=window.SEARCH_INDEX||window.POSTS||[]; const andMatch=(text, need)=>need.every(t=>text.includes(t)); return src.filter(p=>{ const text=(p._text||(p.title||'').toLowerCase()); const hasTerms=terms.length?andMatch(text,terms):true; const ptags=(p.tags||[]).map(s=>s.toLowerCase()); const hasTags=tags.length?tags.every(t=>ptags.includes(t)):true; return hasTerms && hasTags; }).sort(byDateDesc); }
-  function runSearchFromUI(){ const input=$('#search-input'); if(!input) return; const q=input.value.trim(); const list=$('#recent-list'); if(!list){ const dest=q?`index.html?q=${encodeURIComponent(q)}`:'index.html'; if(SPA_ENABLED){ navigateTo(toRootHref(dest)); } else { location.href=toRootHref(dest); } return; } if(!q){ if($('#main-title')) $('#main-title').textContent='Recent Posts'; if($('#tag-context')) $('#tag-context').innerHTML=''; renderList((window.POSTS||[]).slice().sort(byDateDesc)); history.replaceState(null,'',toRootHref('index.html')); updateIntroVisibility(); ensureContentFooter(); return; } const results=searchPosts(q); if($('#main-title')) $('#main-title').textContent='Search results'; if($('#tag-context')) $('#tag-context').textContent=`${results.length} result${results.length!==1?'s':''} for “${q}”`; renderList(results); const url=new URL(location.href); url.search=`?q=${encodeURIComponent(q)}`; history.replaceState(null,'',url); updateIntroVisibility(); ensureContentFooter(); }
-  function wireSearchUI(){ const form=$('#search-form'); const input=$('#search-input'); const clearBtn=$('#search-clear'); if(form && input){ form.addEventListener('submit',e=>{ e.preventDefault(); runSearchFromUI(); }); input.addEventListener('keydown',e=>{ if(e.key==='Escape'){ input.value=''; runSearchFromUI(); }}); clearBtn?.addEventListener('click',()=>{ input.value=''; runSearchFromUI(); }); window.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement !== input){ e.preventDefault(); input.focus(); } }); const q=qs().get('q'); if(q){ input.value=q; } } }
+  function parseQuery(q) { const terms = []; const tags = []; (q || '').split(/\s+/).filter(Boolean).forEach(tok => { if (/^tag:/i.test(tok)) tags.push(tok.slice(4).toLowerCase()); else if (/^#/.test(tok)) tags.push(tok.slice(1).toLowerCase()); else terms.push(tok.toLowerCase()); }); return { terms, tags }; }
+  function searchPosts(q) { const { terms, tags } = parseQuery(q); const src = window.SEARCH_INDEX || window.POSTS || []; const andMatch = (text, need) => need.every(t => text.includes(t)); return src.filter(p => { const text = (p._text || (p.title || '').toLowerCase()); const hasTerms = terms.length ? andMatch(text, terms) : true; const ptags = (p.tags || []).map(s => s.toLowerCase()); const hasTags = tags.length ? tags.every(t => ptags.includes(t)) : true; return hasTerms && hasTags; }).sort(byDateDesc); }
+  function runSearchFromUI() { const input = $('#search-input'); if (!input) return; const q = input.value.trim(); const list = $('#recent-list'); if (!list) { const dest = q ? `index.html?q=${encodeURIComponent(q)}` : 'index.html'; if (SPA_ENABLED) { navigateTo(toRootHref(dest)); } else { location.href = toRootHref(dest); } return; } if (!q) { if ($('#main-title')) $('#main-title').textContent = 'Recent Posts'; if ($('#tag-context')) $('#tag-context').innerHTML = ''; renderList((window.POSTS || []).slice().sort(byDateDesc)); history.replaceState(null, '', toRootHref('index.html')); updateIntroVisibility(); ensureContentFooter(); return; } const results = searchPosts(q); if ($('#main-title')) $('#main-title').textContent = 'Search results'; if ($('#tag-context')) $('#tag-context').textContent = `${results.length} result${results.length !== 1 ? 's' : ''} for “${q}”`; renderList(results); const url = new URL(location.href); url.search = `?q=${encodeURIComponent(q)}`; history.replaceState(null, '', url); updateIntroVisibility(); ensureContentFooter(); }
+  function wireSearchUI() { const form = $('#search-form'); const input = $('#search-input'); const clearBtn = $('#search-clear'); if (form && input) { form.addEventListener('submit', e => { e.preventDefault(); runSearchFromUI(); }); input.addEventListener('keydown', e => { if (e.key === 'Escape') { input.value = ''; runSearchFromUI(); } }); clearBtn?.addEventListener('click', () => { input.value = ''; runSearchFromUI(); }); window.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); } }); const q = qs().get('q'); if (q) { input.value = q; } } }
 
   // ---------- Footer year + layout measuring ----------
-  function wireChrome(){ applyRuntimeStyles(); measureChrome(); window.addEventListener('resize', measureChrome); wireGraphUI(); }
+  function wireChrome() {
+    applyRuntimeStyles(); measureChrome(); window.addEventListener('resize', measureChrome);
+    // ⬇️ NEW: delegate graph wiring to assets/graph.js
+    if (window.GraphView) {
+      window.GraphView.init({
+        toRootHref,
+        navigateTo,
+        SPA_ENABLED,
+        normalizePath
+      });
+    }
+  }
 
   // ---------- SPA navigation ----------
-  function shouldIntercept(a, e){
-    if(!SPA_ENABLED) return false;
-    if(!a) return false;
-    if(a.target && a.target !== '_self') return false;
-    if(a.hasAttribute('download') || a.hasAttribute('data-no-spa')) return false;
-    if(e && (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return false;
+  function shouldIntercept(a, e) {
+    if (!SPA_ENABLED) return false;
+    if (!a) return false;
+    if (a.target && a.target !== '_self') return false;
+    if (a.hasAttribute('download') || a.hasAttribute('data-no-spa')) return false;
+    if (e && (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return false;
     const url = new URL(a.href, location.href);
-    if(url.origin !== location.origin) return false;
+    if (url.origin !== location.origin) return false;
     const base = getSiteBase();
     const rel = (url.pathname.startsWith(base) ? url.pathname.slice(base.length) : normalizePath(url.pathname));
     if (/^posts\/.+\.html$/i.test(rel)) return true;
-    if (/index\.html$/i.test(rel) || rel === '' ) return true;
+    if (/index\.html$/i.test(rel) || rel === '') return true;
     return false;
   }
-
-  async function navigateTo(href, opts={}){
-    if(!SPA_ENABLED){ location.href = href; return; }
+  
+  async function navigateTo(href, opts = {}) {
+    if (!SPA_ENABLED) { location.href = href; return; }
     const url = new URL(href, location.href);
     const cacheKey = url.pathname + url.search;
     let html;
-    try{
-      if(PAGE_CACHE.has(cacheKey)){
+    try {
+      if (PAGE_CACHE.has(cacheKey)) {
         html = PAGE_CACHE.get(cacheKey);
       } else {
         const res = await fetch(url.href, { cache: 'no-store' });
-        if(!res.ok) throw new Error('Fetch failed');
+        if (!res.ok) throw new Error('Fetch failed');
         html = await res.text();
         PAGE_CACHE.set(cacheKey, html);
       }
-    }catch(err){ location.href = url.href; return; }
+    } catch (err) { location.href = url.href; return; }
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     const fetchedArticle = doc.querySelector('#post-article');
     const fetchedMain = doc.querySelector('#content');
     const content = $('#content');
-    if(fetchedArticle){ content.innerHTML = ''; content.appendChild(fetchedArticle.cloneNode(true)); }
-    else if(fetchedMain){ content.innerHTML = fetchedMain.innerHTML; }
+    if (fetchedArticle) { content.innerHTML = ''; content.appendChild(fetchedArticle.cloneNode(true)); }
+    else if (fetchedMain) { content.innerHTML = fetchedMain.innerHTML; }
     else { content.innerHTML = doc.body.innerHTML; }
 
     const newTitle = doc.querySelector('meta[name="title"]')?.getAttribute('content') || doc.title;
-    if(newTitle) document.title = newTitle;
+    if (newTitle) document.title = newTitle;
 
-    if(opts.replace) history.replaceState({}, '', url.href); else history.pushState({}, '', url.href);
+    if (opts.replace) history.replaceState({}, '', url.href); else history.pushState({}, '', url.href);
 
     wireSearchUI();
     const posts = window.POSTS || [];
     buildLeftTree(posts);
     buildRightTags(posts);
 
-    if($('#post-article')){ enhancePostPage(posts); }
-    else if($('#recent-list')){
+    if ($('#post-article')) { enhancePostPage(posts); }
+    else if ($('#recent-list')) {
       const q = qs().get('q');
-      if(q){ const input=$('#search-input'); if(input) input.value=q; runSearchFromUI(); }
+      if (q) { const input = $('#search-input'); if (input) input.value = q; runSearchFromUI(); }
       else { buildIndex(posts); }
     }
 
     updateIntroVisibility();
     ensureMathJax();
-    try{ window.MathJax?.typesetPromise?.(); }catch(_){ }
+    try { window.MathJax?.typesetPromise?.(); } catch (_) { }
     const scroller = $('#content');
     scroller && (scroller.scrollTop = 0);
     ensureContentFooter();
   }
 
-  document.addEventListener('click', (e)=>{
+  document.addEventListener('click', (e) => {
     const a = e.target.closest('a');
-    if(shouldIntercept(a, e)){
+    if (shouldIntercept(a, e)) {
       e.preventDefault();
       navigateTo(a.href);
     }
   });
-  document.addEventListener('mouseover', (e)=>{
+  document.addEventListener('mouseover', (e) => {
     const a = e.target.closest('a');
-    if(!shouldIntercept(a)) return;
+    if (!shouldIntercept(a)) return;
     const url = new URL(a.href, location.href);
     const key = url.pathname + url.search;
-    if(!PAGE_CACHE.has(key)){
-      fetch(url.href, { cache: 'no-store' }).then(r=> r.ok ? r.text() : Promise.reject()).then(t=> PAGE_CACHE.set(key, t)).catch(()=>{});
+    if (!PAGE_CACHE.has(key)) {
+      fetch(url.href, { cache: 'no-store' }).then(r => r.ok ? r.text() : Promise.reject()).then(t => PAGE_CACHE.set(key, t)).catch(() => { });
     }
   });
-  window.addEventListener('popstate', ()=>{ navigateTo(location.href, { replace: true }); });
+  window.addEventListener('popstate', () => { navigateTo(location.href, { replace: true }); });
 
-  // ---------- Graph View (d3-force backend) ----------
-  function ensureGraphOverlay(){
-    if($('#graph-overlay')) return;
-    const ov = document.createElement('div');
-    ov.id = 'graph-overlay';
-    ov.innerHTML = `
-      <div class="panel">
-        <div class="graph-toolbar">
-          <div class="title">Graph View</div>
-          <div class="tools">
-            <button id=\"graph-close\" class=\"ghost\" type=\"button\">Close</button>
-          </div>
-        </div>
-        <svg id="graph-svg" class="graph-canvas" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet" aria-label="Posts link graph"></svg>
-      </div>`;
-    document.body.appendChild(ov);
-    ov.addEventListener('click', (e)=>{ if(e.target === ov) closeGraph(); });
-    $('#graph-close', ov)?.addEventListener('click', closeGraph);
-  }
-
-  function wireGraphUI(){
-    ensureGraphOverlay();
-    const btn = $('#graph-btn');
-    if(btn && !btn._wired){ btn._wired = true; btn.addEventListener('click', openGraph); }
-  }
-
-  // Lazy-load d3
-  function ensureD3(){
-    return new Promise((resolve, reject)=>{
-      if(window.d3 && d3.forceSimulation){ return resolve(window.d3); }
-      const existing = document.querySelector('script[data-d3]');
-      if(existing){
-        const check = () => (window.d3 && d3.forceSimulation) ? resolve(window.d3) : setTimeout(check, 25);
-        return check();
-      }
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
-      s.async = true; s.setAttribute('data-d3','true');
-      s.onload = () => resolve(window.d3);
-      s.onerror = (e) => reject(e);
-      document.head.appendChild(s);
-    });
-  }
-
-  let SIM = null; // d3 simulation handle
-
-  function openGraph(){
-    ensureGraphOverlay();
-    const ov = $('#graph-overlay'); if(!ov) return;
-    ensureD3().then(()=>{
-      renderGraph(window.LINK_GRAPH || { nodes: window.POSTS||[], edges: [] });
-      ov.style.display = 'block';
-    }).catch(err=>{
-      console.error('[graph] d3 load failed', err);
-      alert('Failed to load graph dependencies.');
-    });
-  }
-  function closeGraph(){
-    const ov = $('#graph-overlay'); if(ov) ov.style.display = 'none';
-    if(SIM && typeof SIM.stop === 'function'){ SIM.stop(); }
-    SIM = null;
-  }
-
-  function renderGraph(graph){
-    const svg = d3.select('#graph-svg'); if(svg.empty()) return;
-    const nodeLayerClass = 'node-layer';
-    const linkLayerClass = 'link-layer';
-    const W = 1200, H = 800; // viewBox size
-    svg.attr('viewBox', `0 0 ${W} ${H}`);
-    svg.selectAll('*').remove();
-
-    const world = svg.append('g').attr('class','world');
-
-    // Build nodes (id = normalized path)
-    const rawNodes = (graph.nodes||[]).map(p=>({ id: normalizePath(p.path), title: p.title || (p.path.split('/').pop()||'').replace(/\.html$/,''), path: p.path }));
-    const nodeMap = new Map(rawNodes.map(n=>[n.id, n]));
-
-    // Undirected edges for drawing (only edges whose nodes exist)
-    const edges = (graph.edges||[])
-      .map(e=>({ source: normalizePath(e.source), target: normalizePath(e.target) }))
-      .filter(e=> nodeMap.has(e.source) && nodeMap.has(e.target));
-
-    // Compute indegree from SEARCH_INDEX directed links (content links only)
-    const indegree = new Map(rawNodes.map(n=>[n.id, 0]));
-    const idx = window.SEARCH_INDEX || [];
-    idx.forEach(p=>{ (p._links||[]).forEach(to=>{ const t = normalizePath(to); if(indegree.has(t)) indegree.set(t, indegree.get(t)+1); }); });
-    let minD = Infinity, maxD = -Infinity; indegree.forEach(v=>{ if(v<minD) minD=v; if(v>maxD) maxD=v; });
-    const rMin = 8, rMax = 28;
-    function rFor(id){ const v = indegree.get(id) || 0; if(!(maxD>minD)) return (rMin+rMax)/2; return rMin + (v - minD) * (rMax-rMin) / (maxD-minD); }
-
-    rawNodes.forEach(n=>{ n.r = rFor(n.id); });
-
-    // Layers
-    const link = world.append('g').attr('class', linkLayerClass)
-      .attr('stroke','currentColor').attr('stroke-opacity',0.45)
-      .selectAll('line').data(edges).join('line');
-
-    const node = world.append('g').attr('class', nodeLayerClass)
-      .selectAll('circle').data(rawNodes).join('circle')
-        .attr('r', d=>d.r)
-        .attr('fill', '#2a76ff')
-        .attr('opacity', 0.9)
-        .attr('stroke', 'currentColor')
-        .attr('stroke-opacity', 0.5)
-        .style('cursor','pointer')
-        .on('click', (ev,d)=>{ closeGraph(); const href = toRootHref(d.path); if(SPA_ENABLED) navigateTo(href); else location.href = href; })
-        .append('title').text(d=>d.title);
-
-    // d3-force simulation
-    const sim = d3.forceSimulation(rawNodes)
-      .force('link', d3.forceLink(edges).id(d=>d.id).distance(150).strength(0.05))
-      .force('charge', d3.forceManyBody().strength(-280))
-      .force('center', d3.forceCenter(W/2, H/2))
-      .force('collide', d3.forceCollide().radius(d=>d.r + 6).iterations(2));
-    SIM = sim;
-
-    // Drag
-    const drag = d3.drag()
-      .on('start', (event,d)=>{ if(!event.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag', (event,d)=>{ d.fx = event.x; d.fy = event.y; })
-      .on('end',   (event,d)=>{ if(!event.active) sim.alphaTarget(0); d.fx = null; d.fy = null; });
-    svg.selectAll('circle').call(drag);
-
-    sim.on('tick', ()=>{
-      link
-        .attr('x1', d=> d.source.x)
-        .attr('y1', d=> d.source.y)
-        .attr('x2', d=> d.target.x)
-        .attr('y2', d=> d.target.y);
-      svg.selectAll('circle')
-        .attr('cx', d=>d.x)
-        .attr('cy', d=>d.y);
-    });
-  }
+  
 
   // ---------- Init ----------
   async function init(){
     applyRuntimeStyles();
     ensureShell();
-    $$('.topnav').forEach(el=>el.remove()); // keep topnav removed
+    $$('.topnav').forEach(el=>el.remove());
 
     const posts = await loadManifest();
     window.POSTS = posts;
@@ -574,7 +452,7 @@
 
     enhancePostPage(posts);
     wireSearchUI();
-    wireChrome();
+    wireChrome();            // (this now calls GraphView.init)
     ensureMathJax();
     measureChrome();
     ensureContentFooter();

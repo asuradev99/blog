@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "id": "Idea",
+      "x": 640.8860551239815,
+      "y": 305.99266930694574
+    },
+    {
+      "id": "Research",
+      "x": 538.4325601054439,
+      "y": 348.78605003649903
+    },
+    {
+      "id": "Notes",
+      "x": 642.396414120564,
+      "y": 395.0251984713982
+    },
+    {
+      "id": "test",
+      "x": 497.3188502124587,
+      "y": 451.9213328499746
+    },
+    {
+      "id": "test2",
+      "x": 580.8181390531349,
+      "y": 455.53113734264235
+    },
+    {
+      "id": "asd",
+      "x": 490.6541733757151,
+      "y": 251.18209843283861
+    },
+    {
+      "id": "asdasd",
+      "x": 434.78437994278045,
+      "y": 310.83697230278614
+    },
+    {
+      "id": "a",
+      "x": 438.5620767400853,
+      "y": 392.526130234693
+    },
+    {
+      "id": "awdawd,s",
+      "x": 578.1627084450125,
+      "y": 240.18855068751182
+    }
+  ],
+  "links": [
+    {
+      "source": "Idea",
+      "target": "Research"
+    },
+    {
+      "source": "Research",
+      "target": "Notes"
+    },
+    {
+      "source": "test2",
+      "target": "Research"
+    },
+    {
+      "source": "test",
+      "target": "Notes"
+    },
+    {
+      "source": "Research",
+      "target": "test"
+    },
+    {
+      "source": "Notes",
+      "target": "Idea"
+    },
+    {
+      "source": "Research",
+      "target": "a"
+    },
+    {
+      "source": "Research",
+      "target": "asd"
+    },
+    {
+      "source": "Research",
+      "target": "asdasd"
+    },
+    {
+      "source": "Research",
+      "target": "awdawd,s"
+    }
+  ]
+}
