@@ -1,6 +1,24 @@
 {
-  "generated": "2025-08-16T08:08:49.376Z",
+  "generated": "2025-08-18T08:10:14.531Z",
   "posts": [
+    {
+      "title": "2025-08-17",
+      "path": "posts/2025-08-17.html",
+      "tags": [
+        "daily",
+        "social"
+      ],
+      "date": "2025-08-17"
+    },
+    {
+      "title": "2025-08-16",
+      "path": "posts/2025-08-16.html",
+      "tags": [
+        "daily",
+        "brainstorming"
+      ],
+      "date": "2025-08-16"
+    },
     {
       "title": "2025-08-15",
       "path": "posts/2025-08-15.html",
@@ -11,14 +29,6 @@
       "date": "2025-08-15"
     },
     {
-      "title": "2025-08-14",
-      "path": "posts/2025-08-14.html",
-      "tags": [
-        "daily"
-      ],
-      "date": "2025-08-14"
-    },
-    {
       "title": "Hello World",
       "path": "posts/Hello-World.html",
       "tags": [
@@ -26,20 +36,6 @@
         "tag2"
       ],
       "date": "2025-08-13"
-    },
-    {
-      "title": "New Post",
-      "path": "posts/new-post.html",
-      "tags": [],
-      "date": "2025-08-13"
-    },
-    {
-      "title": "2025-08-12",
-      "path": "posts/2025-08-12.html",
-      "tags": [
-        "daily"
-      ],
-      "date": "2025-08-12"
     }
   ]
 }
