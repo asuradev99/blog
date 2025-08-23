@@ -1,6 +1,16 @@
 {
-  "generated": "2025-08-18T08:10:14.531Z",
+  "generated": "2025-08-23T07:44:49.973Z",
   "posts": [
+    {
+      "title": "2025-08-22",
+      "path": "posts/2025-08-22.html",
+      "tags": [
+        "daily",
+        "habits",
+        "important"
+      ],
+      "date": "2025-08-22"
+    },
     {
       "title": "2025-08-17",
       "path": "posts/2025-08-17.html",
@@ -31,10 +41,7 @@
     {
       "title": "Hello World",
       "path": "posts/Hello-World.html",
-      "tags": [
-        "tag1",
-        "tag2"
-      ],
+      "tags": [],
       "date": "2025-08-13"
     }
   ]
