@@ -1,6 +1,17 @@
 {
-  "generated": "2025-08-25T06:05:55.424Z",
+  "generated": "2025-09-01T03:13:36.190Z",
   "posts": [
+    {
+      "title": "2025-08-31",
+      "path": "posts/2025-08-31.html",
+      "tags": [
+        "daily",
+        "goals",
+        "important",
+        "mit"
+      ],
+      "date": "2025-08-31"
+    },
     {
       "title": "2025-08-23",
       "path": "posts/2025-08-23.html",
@@ -14,7 +25,7 @@
       "path": "posts/2025-08-22.html",
       "tags": [
         "daily",
-        "habits",
+        "goals",
         "important"
       ],
       "date": "2025-08-22"
