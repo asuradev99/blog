@@ -1,6 +1,23 @@
 {
-  "generated": "2025-09-07T19:14:25.730Z",
+  "generated": "2025-12-21T06:17:48.209Z",
   "posts": [
+    {
+      "title": "2025-12-20",
+      "path": "posts/2025-12-20.html",
+      "tags": [
+        "daily"
+      ],
+      "date": "2025-12-20"
+    },
+    {
+      "title": "2025-12-17",
+      "path": "posts/2025-12-17.html",
+      "tags": [
+        "daily",
+        "philosophy"
+      ],
+      "date": "2025-12-17"
+    },
     {
       "title": "2025-09-07",
       "path": "posts/2025-09-07.html",
