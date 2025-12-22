@@ -1,8 +1,8 @@
 /* Minimalist dark theme */
 :root {
   --bg: #131416;
-  --bg-elev: #171920;
-  --panel: #191d25;
+  --bg-elev: #131416;
+  --panel: #131416;
   --text: #e5e7eb;
   --muted: #9aa4b2;
   --accent: #e0f1f6;
