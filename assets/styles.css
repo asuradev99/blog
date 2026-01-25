@@ -44,8 +44,9 @@ body {
 .layout.hide-left #sidebar-left { display: none; }
 .layout.hide-right #sidebar-right { display: none; }
 
-.sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 12px; overflow-y: auto; width: max-content; min-width: 140px; }
-.sidebar.right { border-right: none; border-left: 1px solid var(--border); }
+.sidebar { background: var(--panel); padding: 12px; overflow-y: auto; width: max-content; min-width: 140px; }
+.sidebar.left { padding-left: 18px; }
+.sidebar.right { text-align: right; padding-right: 18px; margin-left: auto; }
 .sidebar-title { font-weight: 700; opacity: 0.9; margin: 6px 0 10px; white-space: nowrap; }
 .content { padding: 18px 18px 48px; }
 .footer { text-align: center; padding: 18px; border-top: 1px solid var(--border); }
@@ -75,7 +76,7 @@ body {
 .tag-chip:hover { color: var(--text); border-color: var(--accent-2); }
 
 /* Right tag list */
-.tag-list { list-style: none; padding-left: 0; margin: 6px 0 0; }
+.tag-list { list-style: none; padding-left: 0; margin: 6px 0 0; text-align: right; }
 .tag-list li { margin: 4px 0; white-space: nowrap; }
 .tag-list a { color: var(--muted); text-decoration: none; }
 .tag-list a:hover { color: var(--text); }
