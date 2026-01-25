@@ -1,6 +1,15 @@
 {
-  "generated": "2025-12-22T09:09:05.636Z",
+  "generated": "2026-01-25T10:27:17.583Z",
   "posts": [
+    {
+      "title": "Free Will Mindmap",
+      "path": "posts/free_will_mindmap.html",
+      "tags": [
+        "free will",
+        "mindmap"
+      ],
+      "date": "2026-01-25"
+    },
     {
       "title": "2025-12-20",
       "path": "posts/2025-12-20.html",
