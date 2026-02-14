@@ -28,6 +28,10 @@
     .range-group{display:flex;align-items:center;gap:.4rem;margin-left:1rem}
     .range-group label{color:var(--muted);font-size:.85rem}
     .range-group input[type=range]{accent-color:var(--accent);width:140px}
+    .range-group select{background:var(--panel);color:var(--text);border:1px solid var(--border);padding:.35rem .5rem;border-radius:.5rem;font-size:.85rem;cursor:pointer;}
+    .dropdown-wrap{position:relative;display:inline-block}
+    .dropdown-panel{display:none;position:absolute;top:100%;left:0;margin-top:.4rem;background:var(--panel);border:1px solid var(--border);border-radius:.75rem;padding:.7rem .8rem;box-shadow:0 8px 24px var(--shadow);z-index:10;min-width:260px}
+    .dropdown-wrap.open .dropdown-panel{display:flex;flex-direction:column;gap:.6rem}
     .content { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr !important; }
     .graph-wrap { position: relative; background: var(--bg); }
     .inspector { border-left: 1px solid var(--border); background: var(--panel); padding: 12px; display:flex; flex-direction:column; gap:.75rem; }
@@ -97,6 +101,9 @@
     .dragline { stroke: var(--accent); stroke-opacity: .8; stroke-width: 2px; stroke-dasharray: 4 3; pointer-events: none; }
 
     .help { position: absolute; left: 12px; bottom: 12px; background: rgba(0,0,0,0.3); border:1px solid var(--border); padding: .5rem .65rem; border-radius:.6rem; color: var(--muted); font-size: .85rem; backdrop-filter: blur(6px); }
+    /* Expand button in toolbar */
+    #expandBtn { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; }
+
   /* Viewer-only mode: hide editing UI */
     .inspector, .help, #importBtn, #exportBtn, #fileInput, .hint { display: none !important; }
     .inspector { width: 0 !important; padding: 0 !important; border: 0 !important; }
@@ -109,17 +116,41 @@
     <button id="exportBtn">Export JSON</button>
     <button id="fitBtn">Fit</button>
     <button id="resetBtn">Reset</button>
-    <div class="range-group"><label>Size boost</label><input id="boostRange" type="range" min="0" max="100" step="1" value="15"/><span id="boostValue" class="badge">15</span></div><div class="range-group"><label>Spread</label><input id="spreadRange" type="range" min="0.4" max="3.0" step="0.05" value="1.5"/><span id="spreadValue" class="badge">1.5×</span></div>
+    <div class="dropdown-wrap" id="physicsDropdown">
+      <button id="physicsBtn">Physics</button>
+      <div class="dropdown-panel">
+        <div class="range-group"><label>Size boost</label><input id="boostRange" type="range" min="0" max="100" step="1" value="15"/><span id="boostValue" class="badge">15</span></div>
+        <div class="range-group"><label>Spread</label><input id="spreadRange" type="range" min="1" max="10" step="0.1" value="3.0"/><span id="spreadValue" class="badge">3.0×</span></div>
+        <div class="range-group"><label>Spacing</label><select id="spacingMode"><option value="cluster">Cluster</option><option value="min">Min</option><option value="sum">Sum</option></select></div>
+      </div>
+    </div>
+    <div class="range-group"><label>Colors</label><select id="colorScheme"><option value="viridis">Viridis</option><option value="cividis">Cividis</option><option value="plasma">Plasma</option><option value="inferno">Inferno</option><option value="magma">Magma</option><option value="turbo">Turbo</option><option value="warm">Warm</option><option value="cool">Cool</option></select></div>
+    <button id="expandBtn" title="Expand"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M1 1h5V0H0v6h1V1zm14 0h-5V0h6v6h-1V1zM1 15h5v1H0v-6h1v5zm14 0h-5v1h6v-6h-1v5z"/></svg></button>
     <span class="hint">N: new node • Right-drag: connect • Click: select • Drag: move • Scroll: zoom • Drag background: pan</span>
     <input id="fileInput" type="file" accept="application/json" style="display:none" />
   </div>
   <div class="content">
     <div class="graph-wrap" id="graphWrap">
-      <svg id="graph" tabindex="0" aria-label="Mind map canvas">
+      <svg id="graph" tabindex="0" aria-label="Mind map canvas" style="outline:none;">
         <defs>
           <!-- Soft glow filter around nodes -->
           <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <filter id="glow-selected" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <filter id="glow-neighbor" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
             <feMerge>
               <feMergeNode in="blur"/>
               <feMergeNode in="SourceGraphic"/>
@@ -199,14 +230,34 @@
   const importBtn = document.getElementById('importBtn');
   const exportBtn = document.getElementById('exportBtn');
   const fitBtn = document.getElementById('fitBtn');
+  const expandBtn = document.getElementById('expandBtn');
   const resetBtn = document.getElementById('resetBtn');
   const fileInput = document.getElementById('fileInput');
+  const physicsDropdown = document.getElementById('physicsDropdown');
+  const physicsBtn = document.getElementById('physicsBtn');
   const boostRange = document.getElementById('boostRange');
   const boostValue = document.getElementById('boostValue');
   let degreeBoost = +boostRange.value || 15;
   const spreadRange = document.getElementById('spreadRange');
   const spreadValue = document.getElementById('spreadValue');
-  let spreadFactor = spreadRange ? +spreadRange.value : 1.5;
+  let spreadFactor = spreadRange ? +spreadRange.value : 3.0;
+
+  // Color schemes
+  const colorSchemes = {
+    cividis: d3.interpolateCividis,
+    viridis: d3.interpolateViridis,
+    plasma: d3.interpolatePlasma,
+    inferno: d3.interpolateInferno,
+    magma: d3.interpolateMagma,
+    turbo: d3.interpolateTurbo,
+    warm: d3.interpolateWarm,
+    cool: d3.interpolateCool,
+  };
+  const colorSchemeSelect = document.getElementById('colorScheme');
+
+  // Spacing mode
+  const spacingSelect = document.getElementById('spacingMode');
+  let spacingMode = spacingSelect.value || 'cluster';
 
   // Data
   /** @type {{id:string, x?:number, y?:number, fx?:number, fy?:number, degree?:number, w?:number, h?:number, collisionRadius?:number, scale?:number, createdAt?:number, notes?:string}[]} */
@@ -226,7 +277,7 @@
   let center = {x: 0, y: 0};
 
   // Scales
-  let color = d3.scaleSequential(d3.interpolateCividis).domain([0,1]);
+  let color = d3.scaleSequential(colorSchemes[colorSchemeSelect.value] || d3.interpolateCividis).domain([0,1]);
 
   // Get display HTML for a node (notes if present, otherwise id)
   function getDisplayHtml(d) {
@@ -296,16 +347,32 @@
     };
   }
 
+  // Baseline collision radius for a degree-0 node (minW=70, minH=40)
+  const baseRadius = 0.5 * Math.hypot(70, 40); // ~40
+
   function linkDist(l){
-    const sum = Math.min(6, (l.source?.degree||0) + (l.target?.degree||0));
-    return (40 + sum*2) * Math.pow(spreadFactor || 1, 0.9);
+    const rSrc = l.source?.collisionRadius || 24;
+    const rTgt = l.target?.collisionRadius || 24;
+    const gap = 20;
+    let basis;
+    if (spacingMode === 'sum') basis = rSrc + rTgt;
+    else basis = Math.min(rSrc, rTgt) * 2; // min & cluster both use min
+    const maxDeg = Math.max(l.source?.degree || 0, l.target?.degree || 0);
+    const maxPossible = Math.max(1, nodes.length - 1);
+    const t = Math.min(1, maxDeg / maxPossible);
+    const exponent = 0.9 * t;
+    return (basis + gap) * Math.pow(spreadFactor || 1, exponent);
   }
   function chargeStrength(d){
+    const base = -120 * (spreadFactor || 1);
+    if (spacingMode === 'cluster') {
+      const r = d.collisionRadius || baseRadius;
+      return base * Math.pow(r / baseRadius, 2);
+    }
     const N = Math.max(1, nodes.length - 1);
     const deg = d.degree || 0;
-    const unlinkedRatio = 1 - (deg / N); // 1 for isolates, ~0 for highly connected
-    const base = -120 * (spreadFactor || 1);
-    return base * (1 + 0.8 * unlinkedRatio); // stronger repulsion for poorly-connected nodes
+    const unlinkedRatio = 1 - (deg / N);
+    return base * (1 + 0.8 * unlinkedRatio);
   }
   function updateSpread(){
     sim.force('charge').strength(chargeStrength);
@@ -343,6 +410,7 @@
   // Zoom behavior (background pan/zoom) — require click-to-focus for wheel zoom
   // Give focus to the SVG when the user clicks/presses inside it
   svg.on('pointerdown', () => { const n = svg.node(); n && n.focus && n.focus(); });
+  svg.on('mouseenter', () => { const n = svg.node(); n && n.focus && n.focus(); });
   const zoom = d3.zoom()
     .filter((event) => event.type !== 'wheel' || document.activeElement === svg.node())
     .scaleExtent([0.2, 3])
@@ -398,6 +466,27 @@
     fitGraph();
   });
   fitBtn.addEventListener('click', fitGraph);
+  let expanded = false;
+  let savedFrameStyle = '';
+  expandBtn.addEventListener('click', () => {
+    const frame = window.frameElement;
+    if (frame) {
+      if (!expanded) {
+        savedFrameStyle = frame.style.cssText;
+        frame.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:999999;border:0;';
+        expanded = true;
+      } else {
+        frame.style.cssText = savedFrameStyle;
+        expanded = false;
+      }
+    }
+    expandBtn.innerHTML = expanded
+      ? '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M5 5H0V4h4V0h1v5zm6 0h5V4h-4V0h-1v5zM5 11H0v1h4v4h1v-5zm6 0h5v1h-4v4h-1v-5z"/></svg>'
+      : '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M1 1h5V0H0v6h1V1zm14 0h-5V0h6v6h-1V1zM1 15h5v1H0v-6h1v5zm14 0h-5v1h6v-6h-1v5z"/></svg>';
+    expandBtn.title = expanded ? 'Collapse' : 'Expand';
+    updateCenter();
+    setTimeout(fitGraph, 100);
+  });
   if (boostRange){
     boostRange.addEventListener('input', ()=>{
       degreeBoost = +boostRange.value;
@@ -415,6 +504,22 @@
       updateSpread();
     });
   }
+
+  // Physics dropdown toggle
+  physicsBtn.addEventListener('click', (e) => { e.stopPropagation(); physicsDropdown.classList.toggle('open'); });
+  document.addEventListener('click', (e) => { if (!physicsDropdown.contains(e.target)) physicsDropdown.classList.remove('open'); });
+
+  // Color scheme change
+  colorSchemeSelect.addEventListener('change', () => {
+    const interp = colorSchemes[colorSchemeSelect.value];
+    if (interp) { color = d3.scaleSequential(interp).domain(color.domain()); render(); }
+  });
+
+  // Spacing mode change
+  spacingSelect.addEventListener('change', () => {
+    spacingMode = spacingSelect.value;
+    updateSpread();
+  });
 
   if (!VIEWER_ONLY && applyBtn) applyBtn.addEventListener('click', applyInspectorChanges);
   if (!VIEWER_ONLY && nameInput) nameInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); applyInspectorChanges(); nameInput.blur(); svg.node().focus(); } });
@@ -581,13 +686,25 @@
   function render(){
     recalcDegrees();
 
+    // Precompute neighbor set for selection highlighting
+    const neighborSet = new Set();
+    if (selected) {
+      for (const id of neighborsOf(selected)) neighborSet.add(id);
+    }
+
     // LINKS (main visible lines)
     const linkSel = linkLayer.selectAll('line.link').data(links, d => linkKey(nodeName(d.source), nodeName(d.target)));
     linkSel.exit().remove();
     const linkEnter = linkSel.enter().append('line').attr('class','link')
       .attr('stroke', '#64748b').attr('stroke-opacity', 0.9).attr('stroke-width', 2);
     linkEnter.merge(linkSel)
-      .classed('highlight', d => selectedLink && linkId(d) === linkId(selectedLink));
+      .classed('highlight', d => selectedLink && linkId(d) === linkId(selectedLink))
+      .attr('stroke-opacity', d => {
+        if (!selected) return 0.9;
+        const s = nodeName(d.source), t = nodeName(d.target);
+        if (s === selected.id || t === selected.id) return 0.9;
+        return 0.3;
+      });
 
     // LINKS HOT AREA (large hit target for selection/deletion)
     const hotSel = linkLayer.selectAll('line.link-hot').data(links, d => linkKey(nodeName(d.source), nodeName(d.target)));
@@ -602,7 +719,7 @@
     nodeSel.exit().remove();
     const nodeEnter = nodeSel.enter().append('g')
       .attr('class','node-g')
-      .on('click', (event, d) => { if (event.button !== 0) return; if (VIEWER_ONLY) return; event.stopPropagation(); selectNode(d); })
+      .on('click', (event, d) => { if (event.button !== 0) return; event.stopPropagation(); selectNode(d); })
       .on('mousedown', (event, d) => {
         // right-button starts linking
         if (VIEWER_ONLY) return;
@@ -640,7 +757,26 @@
       .attr('width', d => d.w)
       .attr('height', d => d.h)
       .attr('fill', d => color(d.degree || 0))
-      .attr('fill-opacity', 0.95);
+      .attr('fill-opacity', d => {
+        if (!selected) return 0.95;
+        if (d.id === selected.id) return 1;
+        if (neighborSet.has(d.id)) return 0.95;
+        return 0.7;
+      })
+      .attr('filter', d => {
+        if (!selected) return 'url(#glow)';
+        if (d.id === selected.id) return 'url(#glow-selected)';
+        if (neighborSet.has(d.id)) return 'url(#glow-neighbor)';
+        return 'none';
+      });
+
+    // Dim non-selected, non-neighbor node groups (affects text too)
+    nodeMerge.style('opacity', d => {
+      if (!selected) return 1;
+      if (d.id === selected.id) return 1;
+      if (neighborSet.has(d.id)) return 0.85;
+      return 0.7;
+    });
 
     // Update foreignObject for HTML content (centered in node)
     nodeMerge.select('foreignObject.node-html-wrap')

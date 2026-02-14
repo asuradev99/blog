@@ -95,7 +95,7 @@
 
     const layout = document.createElement('div');
     layout.id = 'app';
-    layout.className = 'layout';
+    layout.className = 'layout post-page';
     layout.innerHTML = `
       <aside id="sidebar-left" class="sidebar left">
         <div class="sidebar-title">Posts</div>
