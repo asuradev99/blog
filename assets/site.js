@@ -1,4 +1,7 @@
 (function () {
+  // Early font restore — runs before DOMContentLoaded to prevent flash
+  try { const f = localStorage.getItem('blogFont'); if (f) document.documentElement.style.fontFamily = f; } catch (_) {}
+
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const normalizePath = p => String(p || '').replace(/^\/+/, '').replace(/\\+/g, '/');
@@ -32,7 +35,7 @@
     s.textContent = `
       html, body { height: 100%; overflow: hidden; }
       body { font-size: 18px; }
-      .topbar { position: fixed; left: 0; right: 0; top: 0; z-index: 10; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 8px 12px; }
+      .topbar { position: fixed; left: 0; right: 0; top: 0; z-index: 10; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px; padding: 8px 12px; }
       .topbar .brand { text-decoration: none; font-weight: 700; }
       .topbar .actions { display: inline-flex; gap: 8px; align-items: center; }
       .layout { height: calc(100vh - var(--topbar-h, 54px)); display: grid; gap: 0; grid-template-columns: var(--left-w,260px) 1fr var(--right-w,220px); }
@@ -70,7 +73,7 @@
     if (!cf) {
       cf = document.createElement('div');
       cf.className = 'content-footer footer muted';
-      cf.innerHTML = `© <span class="year"></span> • Built with HTML/CSS/JS + MathJax`;
+      cf.innerHTML = `© <span class="year"></span> • Built with Claude Code + ChatGPT 5 + MathJax`;
       content.appendChild(cf);
     }
     const yEl = cf.querySelector('.year'); if (yEl) yEl.textContent = new Date().getFullYear();
@@ -89,7 +92,14 @@
       <form id="search-form" class="searchbar center" role="search" autocomplete="off">
         <input id="search-input" type="search" placeholder="Search… (use tag:foo tag:bar)" aria-label="Search posts" />
         <button id="search-clear" type="button" class="ghost tiny" aria-label="Clear search">×</button>
-      </form>`;
+      </form>
+      <div class="topbar-actions">
+        <select id="font-select" aria-label="Choose font">
+          <option value="">System Default</option>
+          <option value="Consolas, monospace">Consolas</option>
+          <option value="'Source Code Pro', monospace">Source Code Pro</option>
+        </select>
+      </div>`;
 
     const bodyNodes = Array.from(document.body.childNodes);
 
@@ -166,13 +176,13 @@
     const ul = document.createElement('ul');
     ul.className = 'tree flat';
     const activeRel = currentRelPath();
-    const files = (posts || []).slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    const files = (posts || []).slice().sort(byDateDesc);
     files.forEach(p => {
       const li = document.createElement('li'); li.className = 'file';
       const a = document.createElement('a'); a.href = toRootHref(p.path); a.textContent = p.title || (p.path.split('/').pop() || '').replace(/\.html$/, '');
       const isActive = normalizePath(p.path) === activeRel; if (isActive) a.classList.add('active');
-      const wrap = document.createElement('div'); wrap.className = 'node' + (isActive ? ' active' : '');
-      wrap.appendChild(a); li.appendChild(wrap); ul.appendChild(li);
+      a.className = 'node' + (isActive ? ' active' : '');
+      li.appendChild(a); ul.appendChild(li);
     });
     mount.appendChild(ul);
   }
@@ -182,7 +192,7 @@
   function chip(tag) { const a = document.createElement('a'); a.className = 'tag-chip'; a.href = toRootHref(`index.html?tag=${encodeURIComponent(tag)}`); a.textContent = `#${tag}`; a.addEventListener('click', (ev) => { if (ev.shiftKey || ev.ctrlKey || ev.metaKey) { ev.preventDefault(); const inp = $('#search-input'); if (inp) { inp.value = (inp.value + ` tag:${tag}`).trim(); runSearchFromUI(); } } }); return a; }
 
   // ---------- Index page ----------
-  function renderList(posts) { const list = $('#recent-list'); if (!list) return; list.innerHTML = ''; posts.forEach(p => { const li = document.createElement('li'); li.className = 'post-item'; const link = document.createElement('a'); link.href = toRootHref(p.path); link.textContent = p.title; const meta = document.createElement('div'); meta.className = 'meta'; const date = document.createElement('span'); date.textContent = p.date ? new Date(p.date).toLocaleDateString() : ''; meta.appendChild(date); (p.tags || []).forEach(t => meta.appendChild(chip(t))); li.appendChild(link); li.appendChild(meta); list.appendChild(li); }); }
+  function renderList(posts) { const list = $('#recent-list'); if (!list) return; list.innerHTML = ''; posts.forEach(p => { const li = document.createElement('li'); li.className = 'post-item'; const link = document.createElement('a'); link.className = 'post-item-link'; link.href = toRootHref(p.path); const title = document.createElement('span'); title.className = 'post-title'; title.textContent = p.title; const meta = document.createElement('div'); meta.className = 'meta'; const date = document.createElement('span'); date.textContent = p.date ? new Date(p.date).toLocaleDateString() : ''; meta.appendChild(date); (p.tags || []).forEach(t => meta.appendChild(chip(t))); link.appendChild(title); link.appendChild(meta); li.appendChild(link); list.appendChild(li); }); }
   function buildIndex(posts) { const tag = qs().get('tag'); const sorted = (posts || []).slice().sort(byDateDesc); const shown = tag ? sorted.filter(p => (p.tags || []).includes(tag)) : sorted; if ($('#main-title')) $('#main-title').textContent = tag ? `Posts tagged “${tag}”` : 'Recent Posts'; if ($('#tag-context')) $('#tag-context').innerHTML = tag ? `<a class="tag-chip" href="${toRootHref('index.html')}">Clear tag</a>` : ''; renderList(shown); updateIntroVisibility(); ensureContentFooter(); }
 
   // ---------- Daily prev/next (defined by tag "daily") ----------
@@ -326,6 +336,23 @@
   function runSearchFromUI() { const input = $('#search-input'); if (!input) return; const q = input.value.trim(); const list = $('#recent-list'); if (!list) { const dest = q ? `index.html?q=${encodeURIComponent(q)}` : 'index.html'; location.href = toRootHref(dest); return; } if (!q) { if ($('#main-title')) $('#main-title').textContent = 'Recent Posts'; if ($('#tag-context')) $('#tag-context').innerHTML = ''; renderList((window.POSTS || []).slice().sort(byDateDesc)); history.replaceState(null, '', toRootHref('index.html')); updateIntroVisibility(); ensureContentFooter(); return; } const results = searchPosts(q); if ($('#main-title')) $('#main-title').textContent = 'Search results'; if ($('#tag-context')) $('#tag-context').textContent = `${results.length} result${results.length !== 1 ? 's' : ''} for “${q}”`; renderList(results); const url = new URL(location.href); url.search = `?q=${encodeURIComponent(q)}`; history.replaceState(null, '', url); updateIntroVisibility(); ensureContentFooter(); }
   function wireSearchUI() { const form = $('#search-form'); const input = $('#search-input'); const clearBtn = $('#search-clear'); if (form && input) { form.addEventListener('submit', e => { e.preventDefault(); runSearchFromUI(); }); input.addEventListener('keydown', e => { if (e.key === 'Escape') { input.value = ''; runSearchFromUI(); } }); clearBtn?.addEventListener('click', () => { input.value = ''; runSearchFromUI(); }); window.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); } }); const q = qs().get('q'); if (q) { input.value = q; } } }
 
+  // ---------- Font selector ----------
+  const FONT_KEY = 'blogFont';
+  function applyFont(val) { document.body.style.fontFamily = val || ''; }
+  function wireFont() {
+    const sel = $('#font-select');
+    if (!sel) return;
+    const saved = localStorage.getItem(FONT_KEY) || '';
+    applyFont(saved);
+    sel.value = saved;
+    sel.addEventListener('change', () => {
+      const v = sel.value;
+      applyFont(v);
+      if (v) localStorage.setItem(FONT_KEY, v);
+      else localStorage.removeItem(FONT_KEY);
+    });
+  }
+
   // ---------- Footer year + layout measuring ----------
   function wireChrome() {
     applyRuntimeStyles();
@@ -352,6 +379,7 @@
 
     enhancePostPage(posts);
     wireSearchUI();
+    wireFont();
     wireChrome();            // (this now calls GraphView.init)
     ensureMathJax();
     measureChrome();
