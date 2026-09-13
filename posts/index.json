@@ -1,6 +1,15 @@
 {
-  "generated": "2026-09-06T20:03:29.488Z",
+  "generated": "2026-09-13T16:06:46.520Z",
   "posts": [
+    {
+      "title": "2026-09-10",
+      "path": "posts/2026-09-10.html",
+      "tags": [
+        "daily",
+        "philosophy"
+      ],
+      "date": "2026-09-10"
+    },
     {
       "title": "There is nothing crazy about giving up free will",
       "path": "posts/nothing-crazy-giving-up-free-will.html",
