@@ -40,7 +40,7 @@
       .topbar .actions { display: inline-flex; gap: 8px; align-items: center; }
       .layout { height: calc(100vh - var(--topbar-h, 54px)); display: grid; gap: 0; grid-template-columns: var(--left-w,260px) 1fr var(--right-w,220px); }
       #content { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-gutter: stable both-edges; }
-      .sidebar { overflow: hidden; }
+      .sidebar { overflow-y: auto; overflow-x: hidden; }
       body > .layout { margin-top: var(--topbar-h, 54px); }
 
       /* Transparent scrollbar (track transparent, thumb only on hover) */

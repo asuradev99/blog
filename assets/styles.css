@@ -11,6 +11,7 @@
   --chip: #272c36;
   --left-max: 260px;
   --right-max: 220px;
+  --topbar-h: 54px;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -23,7 +24,7 @@ body {
 .topbar {
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px; background: var(--bg-elev); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; background: var(--bg-elev);
 }
 .brand { color: var(--text); text-decoration: none; font-weight: 700; }
 .topnav a { color: var(--muted); margin-right: 12px; text-decoration: none; }
@@ -35,7 +36,7 @@ body {
 /* Layout */
 .layout {
   display: grid; gap: 0; grid-template-columns: fit-content(var(--left-max)) 1fr fit-content(var(--right-max));
-  min-height: calc(100vh - 54px);
+  min-height: calc(100vh - var(--topbar-h));
 }
 /* Collapsible states */
 .layout.hide-left { grid-template-columns: 1fr fit-content(var(--right-max)); }
