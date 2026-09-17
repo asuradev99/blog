@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-17T05:20:59.316Z",
+  "generated": "2026-09-17T05:22:56.388Z",
   "posts": [
     {
       "title": "2026-09-17",
@@ -210,6 +210,15 @@
         "daily"
       ],
       "date": "2023-08-16"
+    },
+    {
+      "title": "Snails",
+      "path": "posts/snails.html",
+      "tags": [
+        "emergence",
+        "programming"
+      ],
+      "date": "2023-05-15"
     }
   ]
 }
