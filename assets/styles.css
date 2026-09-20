@@ -51,6 +51,8 @@ body {
 .sidebar.right { text-align: right; padding-right: 18px; margin-left: auto; }
 .sidebar-title { font-weight: 700; opacity: 0.9; margin: 6px 0 10px; white-space: nowrap; }
 .content { padding: 18px 18px 48px; }
+.article img { max-width: 100%; height: auto; display: block; }
+.article figure { margin: 16px 0; }
 .footer { text-align: center; padding: 18px; border-top: 1px solid var(--border); }
 .muted { color: var(--muted); }
 
