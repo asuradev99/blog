@@ -103,6 +103,21 @@
 
     const bodyNodes = Array.from(document.body.childNodes);
 
+    // Re-inserting an <iframe> makes it reload and aborts any request it
+    // already had in flight, so park each src and restore it once the node
+    // is in its final place. That way every frame loads exactly once.
+    const parkedFrames = [];
+    bodyNodes.forEach(n => {
+      if (n.nodeType !== 1) return;
+      const frames = n.tagName === 'IFRAME' ? [n] : Array.from(n.querySelectorAll('iframe'));
+      frames.forEach(f => {
+        const src = f.getAttribute('src');
+        if (!src) return;
+        parkedFrames.push([f, src]);
+        f.removeAttribute('src');
+      });
+    });
+
     const layout = document.createElement('div');
     layout.id = 'app';
     layout.className = 'layout post-page';
@@ -122,7 +137,7 @@
     document.body.appendChild(layout);
 
     const main = $('#content');
-    let article = $('#post-article');
+    let article = bodyNodes.find(n => n.nodeType === 1 && n.id === 'post-article');
     if (!article) {
       article = document.createElement('article');
       article.id = 'post-article';
@@ -144,6 +159,7 @@
       (after || article).insertAdjacentElement('afterend', metaDiv);
     }
     main.appendChild(article);
+    parkedFrames.forEach(([f, src]) => f.setAttribute('src', src));
     ensureContentFooter();
   }
 
