@@ -47,6 +47,23 @@ rebuilds each page into an app shell at runtime (topbar, post tree, tag list).
   them a post falls to the bottom of the list with its filename as the title.
 - **Daily notes** are named `YYYY-MM-DD.html`, use the date as the title, and carry an
   explicit `<h1>` (see `tools/new-daily.js`). Tag them `daily` plus topic tags.
+
+#### Daily tracking block
+
+Daily notes end with a habit-tracking list, after whatever prose the day has. Keep the
+labels and the order identical every time so the entries stay greppable across months:
+
+```html
+<ul>
+  <li><strong>Worked out:</strong> … </li>
+  <li><strong>Meditated:</strong> … </li>
+  <li><strong>Sleep:</strong> … </li>
+  <li><strong>Meals:</strong> … </li>
+</ul>
+```
+
+Never invent a value for one of these — if Ethan didn't say, ask rather than guessing or
+quietly dropping the line.
 - **Titled posts** omit the `<h1>`; `site.js` injects one from `<meta name="title">`.
 - Images live in `media/`, referenced as `../media/<file>`. `.article img` is capped at
   100% width; constrain individual figures inline if a scan renders too large.
