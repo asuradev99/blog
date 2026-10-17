@@ -64,6 +64,8 @@ labels and the order identical every time so the entries stay greppable across m
 
 Never invent a value for one of these — if Ethan didn't say, ask rather than guessing or
 quietly dropping the line.
+- **Anxiety tag:** any post that mentions anxiety (anxious, anxiety attack, etc.) gets the
+  `anxiety` tag alongside its other tags.
 - **Titled posts** omit the `<h1>`; `site.js` injects one from `<meta name="title">`.
 - Images live in `media/`, referenced as `../media/<file>`. `.article img` is capped at
   100% width; constrain individual figures inline if a scan renders too large.
