@@ -1,6 +1,15 @@
 {
-  "generated": "2026-10-31T10:27:24.292Z",
+  "generated": "2026-11-03T05:45:40.312Z",
   "posts": [
+    {
+      "title": "2026-11-02",
+      "path": "posts/2026-11-02.html",
+      "tags": [
+        "daily",
+        "mit"
+      ],
+      "date": "2026-11-02"
+    },
     {
       "title": "2026-10-30",
       "path": "posts/2026-10-30.html",
