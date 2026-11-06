@@ -1,6 +1,17 @@
 {
-  "generated": "2026-11-06T09:50:42.501Z",
+  "generated": "2026-11-06T10:55:15.526Z",
   "posts": [
+    {
+      "title": "You should compare yourself to other people (WIP)",
+      "path": "posts/compare-yourself-to-others.html",
+      "tags": [
+        "wip",
+        "anxiety",
+        "philosophy",
+        "mit"
+      ],
+      "date": "2026-11-06"
+    },
     {
       "title": "2026-11-04",
       "path": "posts/2026-11-04.html",
