@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T11:05:31.533Z",
+  "generated": "2026-11-06T11:06:12.798Z",
   "posts": [
     {
       "title": "You should compare yourself to other people (WIP)",
@@ -423,6 +423,17 @@
       "path": "posts/Hello-World.html",
       "tags": [],
       "date": "2025-08-13"
+    },
+    {
+      "title": "2023-10-04",
+      "path": "posts/2023-10-04.html",
+      "tags": [
+        "daily",
+        "mit",
+        "academics",
+        "social"
+      ],
+      "date": "2023-10-04"
     },
     {
       "title": "Talent, Hard Work, and Passion",
