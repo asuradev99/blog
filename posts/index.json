@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-06T11:06:12.798Z",
+  "generated": "2026-11-06T11:07:33.457Z",
   "posts": [
     {
       "title": "You should compare yourself to other people (WIP)",
@@ -423,6 +423,17 @@
       "path": "posts/Hello-World.html",
       "tags": [],
       "date": "2025-08-13"
+    },
+    {
+      "title": "2023-11-20",
+      "path": "posts/2023-11-20.html",
+      "tags": [
+        "daily",
+        "mit",
+        "social",
+        "anxiety"
+      ],
+      "date": "2023-11-20"
     },
     {
       "title": "2023-10-04",
