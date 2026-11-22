@@ -1,6 +1,16 @@
 {
-  "generated": "2026-11-18T04:45:04.849Z",
+  "generated": "2026-11-22T06:40:41.974Z",
   "posts": [
+    {
+      "title": "thoughts on AI",
+      "path": "posts/thoughts-on-ai.html",
+      "tags": [
+        "ai",
+        "math",
+        "philosophy"
+      ],
+      "date": "2026-11-22"
+    },
     {
       "title": "2026-11-17",
       "path": "posts/2026-11-17.html",
