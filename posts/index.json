@@ -1,6 +1,16 @@
 {
-  "generated": "2026-11-22T06:40:41.974Z",
+  "generated": "2026-11-23T02:22:34.172Z",
   "posts": [
+    {
+      "title": "2026-11-22",
+      "path": "posts/2026-11-22.html",
+      "tags": [
+        "daily",
+        "anxiety",
+        "social"
+      ],
+      "date": "2026-11-22"
+    },
     {
       "title": "thoughts on AI",
       "path": "posts/thoughts-on-ai.html",
